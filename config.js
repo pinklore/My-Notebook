@@ -1,6 +1,7 @@
 // Fill these in after you create your GitHub repo
 const SITE = {
-  user: "your-github-username",
-  repo: "your-repo-name",
+  user: "pinklore",
+  repo: "My-Notebook",
   branch: "main" // or "gh-pages" if you prefer
+
 };
