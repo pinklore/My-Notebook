@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Notebooks</title>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script defer src="config.js"></script>
+  <script>
+    async function loadList() {
+      // You can hardcode a list here if you prefer. We fetch from GitHub API for convenience.
+      const user = SITE.user; // set in config.js
+      const repo = SITE.repo;
+      const branch = SITE.branch || 'main';
+      const api = `https://api.github.com/repos/${user}/${repo}/contents/ipynb?ref=${branch}`;
+      const res = await fetch(api);
+      const items = Array.isArray(await res.json()) ? await res.json() : [];
+      const ul = document.querySelector('#notebook-list');
+      ul.innerHTML = '';
+      for (const it of items) {
+        if (!it.name.endsWith('.ipynb')) continue;
+        const base = it.name.replace(/\.ipynb$/, '');
+        const htmlUrl = `notebooks/${base}.html`;
+        const colabUrl = `https://colab.research.google.com/github/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
+        const ghUrl = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
+
+        const li = document.createElement('li');
+        li.className = 'card';
+        li.innerHTML = `
+          <div class="card-title">${it.name}</div>
+          <div class="card-actions">
+            <a class="btn" href="${htmlUrl}">View HTML</a>
+            <a class="btn" href="${colabUrl}">
+              <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="height:1.1em; vertical-align:middle;" />
+              <span>Open in Colab</span>
+            </a>
+            <a class="btn ghost" href="${ghUrl}">View on GitHub</a>
+          </div>`;
+        ul.appendChild(li);
+      }
+      if (!ul.children.length) {
+        ul.innerHTML = '<li>No notebooks found yet. Add .ipynb files to /ipynb/ and push.</li>';
+      }
+    }
+    document.addEventListener('DOMContentLoaded', loadList);
+  </script>
+</head>
+<body>
+  <header>
+    <h1>My Colab Notebooks</h1>
+    <p>Static HTML previews plus one‑click launch in Colab.</p>
+  </header>
+  <main>
+    <ul id="notebook-list" class="grid"></ul>
+  </main>
+  <footer>
+    <p>Powered by GitHub Pages & nbconvert.</p>
+  </footer>
+</body>
+</html>
