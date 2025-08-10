@@ -7,10 +7,11 @@
   <title>My Notebook</title>
   <!-- External font import for a clean modern look -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <!-- Reference the stylesheet in the assets folder -->
+  <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-  <!-- Navigation and branding -->
+  <!-- Navigation -->
   <header>
     <nav>
       <div class="logo">Your&nbsp;Name</div>
@@ -25,8 +26,8 @@
 
   <!-- Hero section introducing the site owner -->
   <section id="home" class="hero">
-    <h1>Hello, I'm Your&nbsp;Name</h1>
-    <p>Welcome to my personal website where I share data projects and interactive notebooks. Feel free to explore the embedded notebooks below and learn how to publish your own.</p>
+    <h1>Hello</h1>
+    <p>Welcome</p>
   </section>
 
   <!-- Notebook embed section -->
@@ -64,8 +65,8 @@
 
   <!-- Contact / footer section -->
   <section id="contact">
-    <h2>Get in Touch</h2>
-    <p>If youâ€™d like to collaborate or have any questions, feel free to reach out.</p>
+    <h2>Contact</h2>
+    
     <p>Email: <a href="mailto:you@example.com">you@example.com</a></p>
     <p>GitHub: <a href="https://github.com/yourusername" target="_blank">@yourusername</a></p>
   </section>
@@ -79,40 +80,39 @@
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>
 
-  <!-- Load site configuration with your GitHub username, repository and branch -->
-  <script src="config.js"></script>
-
-  <!-- Binder integration script.
-       This script reads the `SITE` object from config.js (see `config.js` for details)
-       and automatically appends a Binder badge next to each notebook in the gallery.
-       The badge launches a temporary JupyterLab session on mybinder.org and opens
-       the corresponding notebook for interactive editing. -->
+  <!-- Binder integration script.  
+       Replace the ghUser, ghRepo and ghBranch values with your actual GitHub
+       username, repository name and branch. This script will automatically
+       append a Binder badge next to each notebook in the gallery list. When
+       clicked, the badge launches a temporary JupyterLab session on mybinder.org
+       and opens the corresponding notebook for interactive editing. -->
   <script>
-    // Read GitHub repository details from config.js
-    const ghUser = (typeof SITE !== 'undefined' && SITE.user) ? SITE.user : 'your-github-username';
-    const ghRepo = (typeof SITE !== 'undefined' && SITE.repo) ? SITE.repo : 'your-repo-name';
-    const ghBranch = (typeof SITE !== 'undefined' && SITE.branch) ? SITE.branch : 'main';
+    // TODO: update these values to point at your GitHub repository
+    // Replace these placeholders with your GitHub username and repository name
+    const ghUser = "pinklore";
+    const ghRepo = "My-Notebook";
+    const ghBranch = "main";
 
-    // Find each list item within the notebook gallery and append a Binder badge
-    document.querySelectorAll('.nb-list li').forEach((li) => {
-      const link = li.querySelector('a');
+    // Find each list item within the notebook gallery
+    document.querySelectorAll(".nb-list li").forEach((li) => {
+      const link = li.querySelector("a");
       if (!link) return;
       // Extract the relative path to the HTML file and derive the IPython notebook path
-      const htmlPath = link.getAttribute('href');
+      const htmlPath = link.getAttribute("href");
       // Convert .html to .ipynb so Binder opens the notebook rather than the static page
-      const nbPath = htmlPath.replace(/\.html$/i, '.ipynb');
+      const nbPath = htmlPath.replace(/\.html$/i, ".ipynb");
       // Construct a Binder URL that opens the notebook in JupyterLab
       const binderUrl = `https://mybinder.org/v2/gh/${ghUser}/${ghRepo}/${ghBranch}?urlpath=lab/tree/${nbPath}`;
       // Create an anchor with the Binder badge image
-      const badgeLink = document.createElement('a');
+      const badgeLink = document.createElement("a");
       badgeLink.href = binderUrl;
-      badgeLink.target = '_blank';
-      badgeLink.rel = 'noopener';
-      const badgeImg = document.createElement('img');
-      badgeImg.src = 'https://mybinder.org/badge_logo.svg';
-      badgeImg.alt = 'Launch in Binder';
-      badgeImg.style.marginLeft = '8px';
-      badgeImg.style.verticalAlign = 'middle';
+      badgeLink.target = "_blank";
+      badgeLink.rel = "noopener";
+      const badgeImg = document.createElement("img");
+      badgeImg.src = "https://mybinder.org/badge_logo.svg";
+      badgeImg.alt = "Launch in Binder";
+      badgeImg.style.marginLeft = "8px";
+      badgeImg.style.verticalAlign = "middle";
       badgeLink.appendChild(badgeImg);
       // Append the badge after the notebook link
       li.appendChild(badgeLink);
