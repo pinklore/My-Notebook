@@ -8,12 +8,18 @@ on:
       - '.github/workflows/nbconvert.yml'
   workflow_dispatch: {}
 
+# 👇 give the workflow write access to push commits
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # 👈 ensures pushes use the repo token
 
       - name: Set up Python
         uses: actions/setup-python@v5
