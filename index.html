@@ -1,65 +1,120 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>My Notebooks</title>
-  <link rel="stylesheet" href="assets/style.css" />
-  <script defer src="config.js"></script>
-  <script>
-  async function loadList() {
-    const ul = document.querySelector('#notebook-list');
-    try {
-      const user = SITE.user; // set in config.js
-      const repo = SITE.repo;
-      const branch = SITE.branch || 'main';
-      const api = `https://api.github.com/repos/${user}/${repo}/contents/ipynb?ref=${branch}`;
-      const res = await fetch(api, { headers: { 'Accept': 'application/vnd.github+json' }});
-      if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
-      const data = await res.json();
-      const items = Array.isArray(data) ? data : [];
-      ul.innerHTML = '';
-      for (const it of items) {
-        if (!it.name.endsWith('.ipynb')) continue;
-        const base = it.name.replace(/\.ipynb$/, '');
-        const htmlUrl = `notebooks/${base}.html`;
-        const colabUrl = `https://colab.research.google.com/github/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
-        const ghUrl = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
-
-        const li = document.createElement('li');
-        li.className = 'card';
-        li.innerHTML = `
-          <div class="card-title">${it.name}</div>
-          <div class="card-actions">
-            <a class="btn" href="${htmlUrl}">View HTML</a>
-            <a class="btn" href="${colabUrl}">
-              <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="height:1.1em; vertical-align:middle;" />
-              <span>Open in Colab</span>
-            </a>
-            <a class="btn ghost" href="${ghUrl}">View on GitHub</a>
-          </div>`;
-        ul.appendChild(li);
-      }
-      if (!ul.children.length) {
-        ul.innerHTML = '<li>No notebooks found yet. Add .ipynb files to /ipynb/ and push.</li>';
-      }
-    } catch (err) {
-      ul.innerHTML = `<li>Could not load list. Check config.js, repo/branch, and that /ipynb exists. Error: ${err.message}</li>`;
-    }
-  }
-  document.addEventListener('DOMContentLoaded', loadList);
-</script>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Website</title>
+  <!-- External font import for a clean modern look -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Navigation and branding -->
   <header>
-    <h1>My Colab Notebooks</h1>
-    <p>Static HTML previews plus one‑click launch in Colab.</p>
+    <nav>
+      <div class="logo">Your&nbsp;Name</div>
+      <ul>
+        <li><a href="#home">Home</a></li>
+        <li><a href="#embed">Notebooks</a></li>
+        <li><a href="#instructions">How&nbsp;to</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </nav>
   </header>
-  <main>
-    <ul id="notebook-list" class="grid"></ul>
-  </main>
+
+  <!-- Hero section introducing the site owner -->
+  <section id="home" class="hero">
+    <h1>Hello, I'm Your&nbsp;Name</h1>
+    <p>Welcome to my personal website where I share data projects and interactive notebooks. Feel free to explore the embedded notebooks below and learn how to publish your own.</p>
+  </section>
+
+  <!-- Notebook embed section -->
+  <section id="embed" class="embed">
+    <h2>Featured Notebook</h2>
+    <p>Use the container below to embed an interactive Google&nbsp;Colab or Jupyter notebook. To make your notebook show up here, replace the <code>src</code> URL with a link to a static HTML version (e.g., via <a href="https://nbviewer.org" target="_blank">NBViewer</a>) or an interactive environment such as <a href="https://mybinder.org" target="_blank">Binder</a>. Not all services allow embedding, so see the instructions below for details.</p>
+    <div class="iframe-container">
+      <!-- Default embed: a sample notebook converted to HTML. Replace this path
+           with your own HTML or NBViewer link if desired. -->
+      <iframe src="notebooks/MachineNotes.html" allowfullscreen></iframe>
+
+    </div>
+		<!-- NOTEBOOKS:START -->
+<ul class="nb-list"><li><a href="notebooks/MachineNotes.html" target="_blank">MachineNotes</a></li>
+<li><a href="notebooks/sample_notebook.html" target="_blank">sample_notebook</a></li></ul>
+<!-- NOTEBOOKS:END -->
+
+	
+	
+  </section>
+
+  <!-- Instructions on how to publish and embed notebooks -->
+  <section id="instructions" class="instructions">
+    <h2>How&nbsp;to Embed Your Colab Notebook</h2>
+    <p>Google&nbsp;Colab notebooks cannot be directly embedded on other websites due to security policies. However, you can publish your work in a few simple steps using GitHub, NBViewer and Binder. Follow the guide below to get your notebook ready for embedding:</p>
+    <ol>
+      <li><strong>Publish your notebook to GitHub or Gist.</strong> In Colab, go to <em>File &gt; Save a copy to GitHub</em> or <em>File &gt; Save a copy as Gist</em>. Make sure the repository or Gist is public so others can access it.</li>
+      <li><strong>Generate a static HTML view.</strong> Use <a href="https://nbviewer.org" target="_blank">NBViewer</a> to render the notebook. NBViewer takes a GitHub or Gist URL and produces a static HTML page. Copy the resulting NBViewer URL.</li>
+      <li><strong>Optionally create an interactive version.</strong> If you want visitors to run your code, you can use <a href="https://mybinder.org" target="_blank">Binder</a> with your GitHub repository. Binder launches a temporary Jupyter environment that runs your notebook. Use a service like <a href="https://www.nbinteract.com" target="_blank">NBInteract</a> to generate embeddable HTML snippets that talk to Binder.</li>
+      <li><strong>Replace the iframe URL.</strong> Edit the <code>src</code> attribute of the iframe in the â€œFeatured Notebookâ€ section above with the NBViewer or NBInteract URL. Save your changes and refresh the page.</li>
+      <li><strong>Test your embed.</strong> Reload your website to confirm the notebook appears and functions as expected. Note that some services may still block embedding; if that happens, provide a link next to the iframe so visitors can open the notebook in a new tab instead.</li>
+    </ol>
+    <p>If you prefer a lightweight inâ€‘browser Python environment without any server dependency, check out <a href="https://jupyterlite.readthedocs.io/en/latest/quickstart/embed-repl.html" target="_blank">JupyterLite</a>. You can embed a small Python REPL on your site by adding an iframe with the REPLâ€™s URL, though youâ€™ll need to host your own JupyterLite deployment to customize the environment.</p>
+  </section>
+
+  <!-- Contact / footer section -->
+  <section id="contact">
+    <h2>Get in Touch</h2>
+    <p>If youâ€™d like to collaborate or have any questions, feel free to reach out.</p>
+    <p>Email: <a href="mailto:you@example.com">you@example.com</a></p>
+    <p>GitHub: <a href="https://github.com/yourusername" target="_blank">@yourusername</a></p>
+  </section>
+
   <footer>
-    <p>Powered by GitHub Pages & nbconvert.</p>
+    &copy; <span id="year"></span> Your&nbsp;Name. Built with love.
   </footer>
+
+  <script>
+    // Update the copyright year dynamically
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+
+  <!-- Binder integration script.  
+       Replace the ghUser, ghRepo and ghBranch values with your actual GitHub
+       username, repository name and branch. This script will automatically
+       append a Binder badge next to each notebook in the gallery list. When
+       clicked, the badge launches a temporary JupyterLab session on mybinder.org
+       and opens the corresponding notebook for interactive editing. -->
+  <script>
+    // TODO: update these values to point at your GitHub repository
+    const ghUser = "pinklore";
+    const ghRepo = "My-Notebook";
+    const ghBranch = "main";
+
+    // Find each list item within the notebook gallery
+    document.querySelectorAll(".nb-list li").forEach((li) => {
+      const link = li.querySelector("a");
+      if (!link) return;
+      // Extract the relative path to the HTML file and derive the IPython notebook path
+      const htmlPath = link.getAttribute("href");
+      // Convert .html to .ipynb so Binder opens the notebook rather than the static page
+      const nbPath = htmlPath.replace(/\.html$/i, ".ipynb");
+      // Construct a Binder URL that opens the notebook in JupyterLab
+      const binderUrl = `https://mybinder.org/v2/gh/${ghUser}/${ghRepo}/${ghBranch}?urlpath=lab/tree/${nbPath}`;
+      // Create an anchor with the Binder badge image
+      const badgeLink = document.createElement("a");
+      badgeLink.href = binderUrl;
+      badgeLink.target = "_blank";
+      badgeLink.rel = "noopener";
+      const badgeImg = document.createElement("img");
+      badgeImg.src = "https://mybinder.org/badge_logo.svg";
+      badgeImg.alt = "Launch in Binder";
+      badgeImg.style.marginLeft = "8px";
+      badgeImg.style.verticalAlign = "middle";
+      badgeLink.appendChild(badgeImg);
+      // Append the badge after the notebook link
+      li.appendChild(badgeLink);
+    });
+  </script>
 </body>
 </html>
