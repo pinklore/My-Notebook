@@ -7,15 +7,17 @@
   <link rel="stylesheet" href="assets/style.css" />
   <script defer src="config.js"></script>
   <script>
-    async function loadList() {
-      // You can hardcode a list here if you prefer. We fetch from GitHub API for convenience.
+  async function loadList() {
+    const ul = document.querySelector('#notebook-list');
+    try {
       const user = SITE.user; // set in config.js
       const repo = SITE.repo;
       const branch = SITE.branch || 'main';
       const api = `https://api.github.com/repos/${user}/${repo}/contents/ipynb?ref=${branch}`;
-      const res = await fetch(api);
-      const items = Array.isArray(await res.json()) ? await res.json() : [];
-      const ul = document.querySelector('#notebook-list');
+      const res = await fetch(api, { headers: { 'Accept': 'application/vnd.github+json' }});
+      if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : [];
       ul.innerHTML = '';
       for (const it of items) {
         if (!it.name.endsWith('.ipynb')) continue;
@@ -41,9 +43,12 @@
       if (!ul.children.length) {
         ul.innerHTML = '<li>No notebooks found yet. Add .ipynb files to /ipynb/ and push.</li>';
       }
+    } catch (err) {
+      ul.innerHTML = `<li>Could not load list. Check config.js, repo/branch, and that /ipynb exists. Error: ${err.message}</li>`;
     }
-    document.addEventListener('DOMContentLoaded', loadList);
-  </script>
+  }
+  document.addEventListener('DOMContentLoaded', loadList);
+</script>
 </head>
 <body>
   <header>
