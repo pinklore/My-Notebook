@@ -6,10 +6,13 @@
   <title>My Colab Notebooks</title>
   <link rel="stylesheet" href="assets/style.css" />
   <script defer src="config.js"></script>
-  <!-- Load Thebe library from unpkg. Thebe enables interactive execution of code
-       cells in static Jupyter notebooks via Binder. Use the non-minified build
-       to avoid potential issues with minification. -->
-  <script src="https://unpkg.com/thebe@latest/dist/index.js"></script>
+  <!--
+       Load Thebe library from a local copy. Thebe enables interactive execution
+       of code cells in static Jupyter notebooks via Binder. To use this
+       functionality, you must download a compatible version of Thebe and
+       save it to `assets/thebe.js`. See README for instructions.
+  -->
+  <script src="assets/thebe.js"></script>
   <script>
   async function loadList() {
     const ul = document.querySelector('#notebook-list');
