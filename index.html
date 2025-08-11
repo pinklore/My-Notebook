@@ -25,7 +25,9 @@
         const htmlUrl = `notebooks/${base}.html`;
         const colabUrl = `https://colab.research.google.com/github/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
         const ghUrl = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
-
+          // Construct a Binder URL that opens the notebook in JupyterLab
+        const binderUrl = `https://mybinder.org/v2/gh/${user}/${repo}/${branch}?urlpath=lab/tree/ipynb/${encodeURIComponent(it.name)}`;
+      
         const li = document.createElement('li');
         li.className = 'card';
         li.innerHTML = `
@@ -35,6 +37,11 @@
             <a class="btn" href="${colabUrl}">
               <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="height:1.1em; vertical-align:middle;" />
               <span>Open in Colab</span>
+            </a>
+
+            <a class="btn" href="${binderUrl}">
+              <img alt="Launch in Binder" src="https://mybinder.org/badge_logo.svg" style="height:1.1em; vertical-align:middle;" />
+              <span>Run in Binder</span>
             </a>
             <a class="btn ghost" href="${ghUrl}">View on GitHub</a>
           </div>`;
@@ -63,3 +70,4 @@
   </footer>
 </body>
 </html>
+
