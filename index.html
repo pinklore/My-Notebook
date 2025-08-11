@@ -272,8 +272,17 @@
       // 2) inject thebe.js into the iframe if not present
       await new Promise((resolve, reject) => {
         if (doc.defaultView.thebe) return resolve();
-        const s = doc.createElement('script');
-        s.src = 'assets/thebe.js';
+       // Build an absolute URL to thebe.js so the iframe can load it
+const thebeSrc = `${location.origin}/${SITE.repo}/assets/thebe.js`;  // e.g. https://pinklore.github.io/My-Notebook/assets/thebe.js
+await new Promise((resolve, reject) => {
+  if (doc.defaultView.thebe) return resolve();
+  const s = doc.createElement('script');
+  s.src = thebeSrc;
+  s.onload = resolve;
+  s.onerror = () => reject(new Error('Failed to load thebe.js inside iframe'));
+  doc.head.appendChild(s);
+});
+
         s.onload = resolve;
         s.onerror = () => reject(new Error('Failed to load thebe.js inside iframe'));
         doc.head.appendChild(s);
