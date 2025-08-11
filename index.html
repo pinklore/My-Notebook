@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>My Notebooks</title>
+  <title>My Colab Notebooks</title>
   <link rel="stylesheet" href="assets/style.css" />
   <script defer src="config.js"></script>
   <script>
@@ -14,105 +14,109 @@
       const repo = SITE.repo;
       const branch = SITE.branch || 'main';
       const api = `https://api.github.com/repos/${user}/${repo}/contents/ipynb?ref=${branch}`;
-
       const res = await fetch(api, { headers: { 'Accept': 'application/vnd.github+json' }});
       if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
-
-      const data = await res.json();            // read once
+      const data = await res.json();
       const items = Array.isArray(data) ? data : [];
-
       ul.innerHTML = '';
-
       for (const it of items) {
         if (!it.name.endsWith('.ipynb')) continue;
-
-        const base      = it.name.replace(/\.ipynb$/, '');
+        const base = it.name.replace(/\.ipynb$/, '');
         const htmlUrl   = `notebooks/${base}.html`;
         const colabUrl  = `https://colab.research.google.com/github/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
         const ghUrl     = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
         const binderUrl = `https://mybinder.org/v2/gh/${user}/${repo}/${branch}?urlpath=lab/tree/ipynb/${encodeURIComponent(it.name)}`;
 
-        // Card: title + badges + buttons
+        // Top-level card element
         const card = document.createElement('li');
         card.className = 'card';
-        card.innerHTML = `
-          <div class="card-title">${it.name}</div>
-          <div class="badges" id="badges-${base}"></div>
-          <div class="card-actions">
-            <a class="btn" href="${htmlUrl}" target="_blank" rel="noopener">View HTML</a>
-            <a class="btn" href="${colabUrl}" target="_blank" rel="noopener">
-              <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="height:1.1em; vertical-align:middle;" />
-              <span>Open in Colab</span>
-            </a>
-            <a class="btn" href="${binderUrl}" target="_blank" rel="noopener">
-              <img alt="Launch in Binder" src="https://mybinder.org/badge_logo.svg" style="height:1.1em; vertical-align:middle;" />
-              <span>Run in Binder</span>
-            </a>
-            <a class="btn ghost" href="${ghUrl}" target="_blank" rel="noopener">View on GitHub</a>
-            <button class="expand-btn" data-target="${base}">Expand Preview</button>
-          </div>`;
-        ul.appendChild(card);
 
-        // Full‑width preview row: iframe + TOC box
-        const embedRow = document.createElement('li');
-        embedRow.className = 'notebook-embed-row';
-        embedRow.innerHTML = `
+        // Collapsible header containing notebook name and arrow indicator
+        const header = document.createElement('div');
+        header.className = 'card-header';
+        header.innerHTML = `<span class="card-title">${it.name}</span><span class="arrow">▶</span>`;
+        card.appendChild(header);
+
+        // Body of card (initially hidden) containing badges, actions, expand button and preview
+        const body = document.createElement('div');
+        body.className = 'card-body';
+
+        // badges container
+        const badgesEl = document.createElement('div');
+        badgesEl.className = 'badges';
+        badgesEl.id = `badges-${base}`;
+        body.appendChild(badgesEl);
+
+        // action buttons container
+        const actionsEl = document.createElement('div');
+        actionsEl.className = 'card-actions';
+        actionsEl.innerHTML = `
+          <a class="btn" href="${htmlUrl}" target="_blank" rel="noopener">View HTML</a>
+          <a class="btn" href="${colabUrl}" target="_blank" rel="noopener">
+            <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="height:1.1em; vertical-align:middle;" />
+            <span>Open in Colab</span>
+          </a>
+          <a class="btn" href="${binderUrl}" target="_blank" rel="noopener">
+            <img alt="Launch in Binder" src="https://mybinder.org/badge_logo.svg" style="height:1.1em; vertical-align:middle;" />
+            <span>Run in Binder</span>
+          </a>
+          <a class="btn ghost" href="${ghUrl}" target="_blank" rel="noopener">View on GitHub</a>
+        `;
+        body.appendChild(actionsEl);
+
+        // Expand/Collapse preview height button inside actions
+        const expandBtn = document.createElement('button');
+        expandBtn.className = 'expand-btn';
+        expandBtn.dataset.target = base;
+        expandBtn.textContent = 'Expand Preview';
+        actionsEl.appendChild(expandBtn);
+
+        // Preview wrapper containing iframe and TOC
+        const preview = document.createElement('div');
+        preview.className = 'preview-wrapper';
+        preview.innerHTML = `
           <iframe class="frame" id="frame-${base}" src="${htmlUrl}" loading="lazy"></iframe>
           <aside class="toc" id="toc-${base}">
             <h3>Contents</h3>
             <div class="toc-body">Loading…</div>
-          </aside>`;
-        ul.appendChild(embedRow);
+          </aside>
+        `;
+        body.appendChild(preview);
 
-        // Expand / collapse
-        card.querySelector('.expand-btn').addEventListener('click', (e) => {
-          const f = document.getElementById('frame-' + e.currentTarget.dataset.target);
+        // Append body to card
+        card.appendChild(body);
+        // Append card to list
+        ul.appendChild(card);
+
+        // Toggle card open/close on header click
+        header.addEventListener('click', () => {
+          const arrowEl = header.querySelector('.arrow');
+          const isOpen = card.classList.toggle('open');
+          arrowEl.textContent = isOpen ? '▼' : '▶';
+        });
+
+        // Setup expand preview height button
+        const iframe = preview.querySelector(`#frame-${base}`);
+        expandBtn.addEventListener('click', (e) => {
+          // Prevent click from toggling the card collapse
+          e.stopPropagation();
           const btn = e.currentTarget;
           const expanded = btn.dataset.expanded === '1';
-          f.style.height = expanded ? '500px' : '1000px';
+          iframe.style.height = expanded ? '500px' : '1000px';
+          preview.querySelector('.toc').style.height = expanded ? '500px' : '1000px';
           btn.textContent = expanded ? 'Expand Preview' : 'Collapse Preview';
           btn.dataset.expanded = expanded ? '0' : '1';
         });
 
-        // Build TOC + copy buttons after iframe loads
-        const iframe = document.getElementById('frame-' + base);
-        const tocBox = document.getElementById('toc-' + base).querySelector('.toc-body');
-
-        iframe.addEventListener('load', () => {
-          const doc = iframe.contentDocument;
-          if (!doc) { tocBox.textContent = 'Unable to read preview.'; return; }
-
-          // Grab headings (nbconvert classic + generic)
-          let headings = doc.querySelectorAll('.text_cell_render h1, .text_cell_render h2, .text_cell_render h3, h1, h2, h3');
-          headings = Array.from(headings).filter(h => h.textContent.trim().length > 0);
-          if (!headings.length) { tocBox.textContent = 'No headings detected.'; return; }
-
-          const list = document.createElement('div');
-          headings.forEach((h, i) => {
-            if (!h.id) h.id = 'nb-h-' + i;
-            const level = h.tagName.toLowerCase();
-            const a = document.createElement('a');
-            a.href = '#' + h.id;
-            a.textContent = h.textContent.trim();
-            a.style.marginLeft = (level === 'h2' ? '12px' : level === 'h3' ? '24px' : '0');
-            a.addEventListener('click', (ev) => {
-              ev.preventDefault();
-              const target = doc.getElementById(h.id);
-              if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
-            list.appendChild(a);
-          });
-
-          tocBox.innerHTML = '';
-          tocBox.appendChild(list);
-
-          addCopyButtons(doc);
-        });
-
-        // Metadata badges
+        // Load metadata badges
         addBadges(it, base);
-      }
 
+        // Build TOC and copy buttons once iframe loads
+        iframe.addEventListener('load', () => {
+          const tocBox = preview.querySelector('.toc-body');
+          handleIframe(iframe, tocBox);
+        });
+      }
       if (!ul.children.length) {
         ul.innerHTML = '<li>No notebooks found yet. Add .ipynb files to /ipynb/ and push.</li>';
       }
@@ -120,38 +124,65 @@
       ul.innerHTML = `<li>Could not load list. Error: ${err.message}</li>`;
     }
   }
-
+  // metadata badges
   function addBadges(item, base) {
-    const wrap = document.getElementById('badges-' + base);
+    const wrap = document.getElementById(`badges-${base}`);
     if (!wrap) return;
+    // size
     if (typeof item.size === 'number') {
       const kb = (item.size / 1024).toFixed(1) + ' KB';
       wrap.insertAdjacentHTML('beforeend', `<span class="badge">${kb}</span>`);
     }
+    // language heuristics
     wrap.insertAdjacentHTML('beforeend', `<span class="badge">python</span>`);
+    // date
     const today = new Date().toISOString().slice(0,10);
     wrap.insertAdjacentHTML('beforeend', `<span class="badge">${today}</span>`);
   }
-
-  function addCopyButtons(doc) {
+  // handle iframe loaded: build TOC and copy buttons
+  function handleIframe(iframe, tocBox) {
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    if (!doc) {
+      tocBox.textContent = 'Unable to read preview.';
+      return;
+    }
+    // gather headings
+    let headings = doc.querySelectorAll('.text_cell_render h1, .text_cell_render h2, .text_cell_render h3, h1, h2, h3');
+    headings = Array.from(headings).filter(h => h.textContent.trim().length > 0);
+    if (!headings.length) {
+      tocBox.textContent = 'No headings detected.';
+    } else {
+      const list = document.createElement('div');
+      headings.forEach((h, i) => {
+        if (!h.id) h.id = 'nb-h-' + i;
+        const level = h.tagName.toLowerCase();
+        const a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.textContent = h.textContent.trim();
+        a.style.marginLeft = (level === 'h2' ? '12px' : level === 'h3' ? '24px' : '0');
+        a.addEventListener('click', ev => {
+          ev.preventDefault();
+          const target = doc.getElementById(h.id);
+          if (target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+        });
+        list.appendChild(a);
+      });
+      tocBox.innerHTML = '';
+      tocBox.appendChild(list);
+    }
+    // add copy buttons to code blocks
     const blocks = doc.querySelectorAll('div.input_area pre, pre');
-    blocks.forEach((pre) => {
+    blocks.forEach(pre => {
       if (pre.dataset.copyAdded) return;
       pre.dataset.copyAdded = '1';
-
       const btn = doc.createElement('button');
       btn.textContent = 'Copy';
-      btn.style.cssText = `
-        position:absolute; right:8px; top:8px; font-size:12px;
-        border:1px solid #ccc; background:#f6f6f6; padding:2px 6px; border-radius:4px; cursor:pointer;
-      `;
-
+      btn.style.cssText = `position:absolute; right:8px; top:8px; font-size:12px; border:1px solid #ccc; background:#f6f6f6; padding:2px 6px; border-radius:4px; cursor:pointer;`;
       const wrap = doc.createElement('div');
       wrap.style.position = 'relative';
       pre.parentNode.insertBefore(wrap, pre);
       wrap.appendChild(pre);
       wrap.appendChild(btn);
-
       btn.addEventListener('click', async () => {
         try {
           await navigator.clipboard.writeText(pre.innerText);
@@ -164,7 +195,6 @@
       });
     });
   }
-
   document.addEventListener('DOMContentLoaded', loadList);
   </script>
 </head>
