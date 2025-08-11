@@ -60,7 +60,7 @@
             <img alt="Launch in Binder" src="https://mybinder.org/badge_logo.svg" style="height:1.1em; vertical-align:middle;" />
             <span>Run in Binder</span>
           </a>
-          <a class="btn ghost" href="${ghUrl}" target="_blank" rel="noopener">View on GitHub</a>
+          <a class="btn" href="${ghUrl}" target="_blank" rel="noopener">View on GitHub</a>
         `;
         body.appendChild(actionsEl);
 
@@ -108,8 +108,8 @@
           btn.dataset.expanded = expanded ? '0' : '1';
         });
 
-        // Load metadata badges
-        addBadges(it, base);
+        // Load metadata badges (with async to fetch last updated time)
+        await addBadges(it, base);
 
         // Build TOC and copy buttons once iframe loads
         iframe.addEventListener('load', () => {
@@ -125,19 +125,40 @@
     }
   }
   // metadata badges
-  function addBadges(item, base) {
+  async function addBadges(item, base) {
     const wrap = document.getElementById(`badges-${base}`);
     if (!wrap) return;
-    // size
+    // Size badge (convert bytes to KB with one decimal)
     if (typeof item.size === 'number') {
       const kb = (item.size / 1024).toFixed(1) + ' KB';
       wrap.insertAdjacentHTML('beforeend', `<span class="badge">${kb}</span>`);
     }
-    // language heuristics
+    // Language badge (simple heuristic: .ipynb -> python)
     wrap.insertAdjacentHTML('beforeend', `<span class="badge">python</span>`);
-    // date
-    const today = new Date().toISOString().slice(0,10);
-    wrap.insertAdjacentHTML('beforeend', `<span class="badge">${today}</span>`);
+    // Last updated date/time badge. Try to fetch the latest commit date for this file from GitHub.
+    try {
+      const pathParam = encodeURIComponent(`ipynb/${item.name}`);
+      const apiUrl = `https://api.github.com/repos/${SITE.user}/${SITE.repo}/commits?path=${pathParam}&page=1&per_page=1`;
+      const resp = await fetch(apiUrl, { headers: { 'Accept': 'application/vnd.github+json' } });
+      if (resp.ok) {
+        const commitData = await resp.json();
+        if (Array.isArray(commitData) && commitData.length > 0) {
+          const commitDateStr = commitData[0].commit && commitData[0].commit.committer && commitData[0].commit.committer.date;
+          if (commitDateStr) {
+            const commitDate = new Date(commitDateStr);
+            // Convert to user's timezone (America/Chicago) and include date & time
+            const dateStr = commitDate.toLocaleString('en-US', { timeZone: 'America/Chicago' });
+            wrap.insertAdjacentHTML('beforeend', `<span class="badge">${dateStr}</span>`);
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      // ignore errors and fallback
+    }
+    // Fallback: use current date/time in user's timezone
+    const fallback = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' });
+    wrap.insertAdjacentHTML('beforeend', `<span class="badge">${fallback}</span>`);
   }
   // handle iframe loaded: build TOC and copy buttons
   function handleIframe(iframe, tocBox) {
