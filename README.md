@@ -1,5 +1,7 @@
 # My Colab Notebook Website
 
+link: https://pinklore.github.io/My-Notebook/
+
 This site hosts static HTML previews of my notebooks and one-click "Open in Colab" links.
 
 ## How to use
@@ -20,4 +22,5 @@ If you want to convert notebooks locally instead of or in addition to CI:
 ```bash
 pip install nbconvert jupyter
 mkdir -p notebooks
+
 jupyter nbconvert --to html ipynb/YourNotebook.ipynb --output-dir notebooks
