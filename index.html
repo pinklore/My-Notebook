@@ -7,8 +7,9 @@
   <link rel="stylesheet" href="assets/style.css" />
   <script defer src="config.js"></script>
   <!-- Load Thebe library from unpkg. Thebe enables interactive execution of code
-       cells in static Jupyter notebooks via Binder. -->
-  <script src="https://unpkg.com/thebe@latest/dist/index.min.js"></script>
+       cells in static Jupyter notebooks via Binder. Use the non-minified build
+       to avoid potential issues with minification. -->
+  <script src="https://unpkg.com/thebe@latest/dist/index.js"></script>
   <script>
   async function loadList() {
     const ul = document.querySelector('#notebook-list');
@@ -282,7 +283,10 @@
       const doc = iframe.contentDocument || iframe.contentWindow.document;
       // Check if thebe has already been initialised on this document
       if (doc && doc.querySelector('[data-thebe-initialized]')) return;
-      // Define thebe configuration pointing to the repository used for Binder
+      // Define thebe configuration pointing to the repository used for Binder.
+      // We specify a selector that targets any element with the
+      // `data-executable` attribute. Thebe will search within the current
+      // iframe document for these elements.
       const binderRepo = `${SITE.user}/${SITE.repo}`;
       window.thebe_config = {
         binderOptions: {
@@ -293,14 +297,22 @@
         kernelName: 'python3',
         requestKernel: true,
         useBinderSplash: true,
+        selector: '[data-executable]'
       };
       // Add an attribute to flag initialization
       if (doc) {
         doc.body.setAttribute('data-thebe-initialized', '1');
       }
-      // Thebe scans the DOM for elements with data-executable
-      // attributes and converts them into interactive cells
-      window.thebe ? window.thebe.bootstrap(doc) : null;
+      // If Thebe has loaded, bootstrap will transform marked cells into
+      // interactive widgets. We pass the iframe's document to restrict the
+      // search to the notebook preview. Without this argument Thebe would
+      // search the main document, which does not contain the code cells.
+      if (window.thebe && typeof window.thebe.bootstrap === 'function') {
+        window.thebe.bootstrap(doc);
+      } else {
+        console.warn('Thebe is not yet loaded on the page.');
+        alert('Thebe could not be loaded. Please ensure you have an internet connection and that the Thebe script is accessible.');
+      }
     } catch (err) {
       console.error('Error initialising live editing:', err);
       alert('An error occurred while enabling live editing.');
