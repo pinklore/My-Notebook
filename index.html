@@ -7,65 +7,65 @@
   <link rel="stylesheet" href="assets/style.css" />
   <script defer src="config.js"></script>
   <script>
-  async function loadList() {
-    const ul = document.querySelector('#notebook-list');
-    try {
-      const user = SITE.user; // set in config.js
-      const repo = SITE.repo;
-      const branch = SITE.branch || 'main';
-      const api = `https://api.github.com/repos/${user}/${repo}/contents/ipynb?ref=${branch}`;
-      const res = await fetch(api, { headers: { 'Accept': 'application/vnd.github+json' }});
-      if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
-      const data = await res.json();
-      const items = Array.isArray(data) ? data : [];
-      ul.innerHTML = '';
-      for (const it of items) {
-        // Only process notebook files
-        if (!it.name.endsWith('.ipynb')) continue;
-        const base = it.name.replace(/\.ipynb$/, '');
-        const htmlUrl = `notebooks/${base}.html`;
-        const colabUrl = `https://colab.research.google.com/github/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
-        const ghUrl = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
-        // Construct a Binder URL that opens the notebook in JupyterLab
-        const binderUrl = `https://mybinder.org/v2/gh/${user}/${repo}/${branch}?urlpath=lab/tree/ipynb/${encodeURIComponent(it.name)}`;
+async function loadList() {
+  const ul = document.querySelector('#notebook-list');
+  try {
+    const user = SITE.user;
+    const repo = SITE.repo;
+    const branch = SITE.branch || 'main';
+    const api = `https://api.github.com/repos/${user}/${repo}/contents/ipynb?ref=${branch}`;
+    const res = await fetch(api, { headers: { 'Accept': 'application/vnd.github+json' }});
+    if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
+    const data = await res.json();
+    const items = Array.isArray(data) ? data : [];
+    ul.innerHTML = '';
 
-        const li = document.createElement('li');
-        li.className = 'card';
-        /*
-         * In addition to listing buttons, embed the rendered HTML version of the notebook
-         * directly into the page via an iframe. This allows visitors to view the notebook
-         * without navigating away from the site. The iframe source points at the
-         * pre‑generated HTML in the `notebooks/` folder. A fixed height is used to
-         * provide scrollable content within the card.
-         */
-        li.innerHTML = `
-          <div class="card-title">${it.name}</div>
-          <div class="card-actions">
-            <a class="btn" href="${htmlUrl}" target="_blank" rel="noopener">View HTML</a>
-            <a class="btn" href="${colabUrl}" target="_blank" rel="noopener">
-              <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="height:1.1em; vertical-align:middle;" />
-              <span>Open in Colab</span>
-            </a>
-            <a class="btn" href="${binderUrl}" target="_blank" rel="noopener">
-              <img alt="Launch in Binder" src="https://mybinder.org/badge_logo.svg" style="height:1.1em; vertical-align:middle;" />
-              <span>Run in Binder</span>
-            </a>
-            <a class="btn ghost" href="${ghUrl}" target="_blank" rel="noopener">View on GitHub</a>
-          </div>
-          <div class="notebook-embed">
-            <iframe src="${htmlUrl}" loading="lazy" style="width:100%; height:600px; border:1px solid #ddd; border-radius:8px;"></iframe>
-          </div>`;
-        ul.appendChild(li);
-      }
-      if (!ul.children.length) {
-        ul.innerHTML = '<li>No notebooks found yet. Add .ipynb files to /ipynb/ and push.</li>';
-      }
-    } catch (err) {
-      ul.innerHTML = `<li>Could not load list. Check config.js, repo/branch, and that /ipynb exists. Error: ${err.message}</li>`;
+    for (const it of items) {
+      if (!it.name.endsWith('.ipynb')) continue;
+      const base = it.name.replace(/\.ipynb$/, '');
+      const htmlUrl   = `notebooks/${base}.html`;
+      const colabUrl  = `https://colab.research.google.com/github/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
+      const ghUrl     = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
+      const binderUrl = `https://mybinder.org/v2/gh/${user}/${repo}/${branch}?urlpath=lab/tree/ipynb/${encodeURIComponent(it.name)}`;
+
+      // Card: title + buttons (keeps current size/layout)
+      const card = document.createElement('li');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-title">${it.name}</div>
+        <div class="card-actions">
+          <a class="btn" href="${htmlUrl}" target="_blank" rel="noopener">View HTML</a>
+          <a class="btn" href="${colabUrl}" target="_blank" rel="noopener">
+            <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="height:1.1em; vertical-align:middle;" />
+            <span>Open in Colab</span>
+          </a>
+          <a class="btn" href="${binderUrl}" target="_blank" rel="noopener">
+            <img alt="Launch in Binder" src="https://mybinder.org/badge_logo.svg" style="height:1.1em; vertical-align:middle;" />
+            <span>Run in Binder</span>
+          </a>
+          <a class="btn ghost" href="${ghUrl}" target="_blank" rel="noopener">View on GitHub</a>
+        </div>`;
+      ul.appendChild(card);
+
+      // Full‑row embed right after the card
+      const embedRow = document.createElement('li');
+      embedRow.className = 'notebook-embed-row';
+      embedRow.innerHTML = `
+        <iframe class="frame" src="${htmlUrl}" loading="lazy"></iframe>
+      `;
+      ul.appendChild(embedRow);
     }
+
+    if (!ul.children.length) {
+      ul.innerHTML = '<li>No notebooks found yet. Add .ipynb files to /ipynb/ and push.</li>';
+    }
+  } catch (err) {
+    ul.innerHTML = `<li>Could not load list. Error: ${err.message}</li>`;
   }
-  document.addEventListener('DOMContentLoaded', loadList);
+}
+document.addEventListener('DOMContentLoaded', loadList);
 </script>
+
 </head>
 <body>
   <header>
@@ -80,4 +80,5 @@
   </footer>
 </body>
 </html>
+
 
