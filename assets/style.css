@@ -33,17 +33,15 @@ footer { padding: 1rem; color:#666; border-top:1px solid #eee; }
 
 /* make the embedded notebook box wider than the card content */
 .notebook-embed {
-  margin-left: -1rem;        /* cancel card’s left padding */
-  margin-right: -1rem;       /* cancel card’s right padding */
-  width: calc(100% + 2rem);  /* extend to card edges */
+  grid-column: 1 / -1; /* make it span the whole grid row */
+  width: 100%;
 }
 
 .notebook-embed iframe {
   width: 100%;
-  height: 800px;             /* tweak to taste */
+  height: 800px; /* adjust as needed */
   border: 1px solid #ddd;
   border-radius: 8px;
-  display: block;
 }
 
 /* optional: on very small screens, reduce height a bit */
