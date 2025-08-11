@@ -6,13 +6,10 @@
   <title>My Colab Notebooks</title>
   <link rel="stylesheet" href="assets/style.css" />
   <script defer src="config.js"></script>
-  <!--
-       Load Thebe library from a local copy. Thebe enables interactive execution
-       of code cells in static Jupyter notebooks via Binder. To use this
-       functionality, you must download a compatible version of Thebe and
-       save it to `assets/thebe.js`. See README for instructions.
-  -->
+
+  <!-- Thebe is served locally from your repo -->
   <script src="assets/thebe.js"></script>
+
   <script>
   async function loadList() {
     const ul = document.querySelector('#notebook-list');
@@ -26,6 +23,7 @@
       const data = await res.json();
       const items = Array.isArray(data) ? data : [];
       ul.innerHTML = '';
+
       for (const it of items) {
         if (!it.name.endsWith('.ipynb')) continue;
         const base = it.name.replace(/\.ipynb$/, '');
@@ -34,44 +32,44 @@
         const ghUrl     = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
         const binderUrl = `https://mybinder.org/v2/gh/${user}/${repo}/${branch}?urlpath=lab/tree/ipynb/${encodeURIComponent(it.name)}`;
 
-        // Top-level card element
+        // Card
         const card = document.createElement('li');
         card.className = 'card';
 
-        // Collapsible header containing notebook name and arrow indicator
+        // Header (collapsible)
         const header = document.createElement('div');
         header.className = 'card-header';
         header.innerHTML = `<span class="card-title">${it.name}</span><span class="arrow">▶</span>`;
         card.appendChild(header);
 
-        // Body of card (initially hidden) containing badges, actions, expand button and preview
+        // Body
         const body = document.createElement('div');
         body.className = 'card-body';
 
-        // badges container
+        // Badges
         const badgesEl = document.createElement('div');
         badgesEl.className = 'badges';
         badgesEl.id = `badges-${base}`;
         body.appendChild(badgesEl);
 
-        // action buttons container
+        // Actions
         const actionsEl = document.createElement('div');
         actionsEl.className = 'card-actions';
         actionsEl.innerHTML = `
           <a class="btn" href="${htmlUrl}" target="_blank" rel="noopener">View HTML</a>
           <a class="btn" href="${colabUrl}" target="_blank" rel="noopener">
-            <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="height:1.1em; vertical-align:middle;" />
+            <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="height:1.1em;vertical-align:middle" />
             <span>Open in Colab</span>
           </a>
           <a class="btn" href="${binderUrl}" target="_blank" rel="noopener">
-            <img alt="Launch in Binder" src="https://mybinder.org/badge_logo.svg" style="height:1.1em; vertical-align:middle;" />
+            <img alt="Launch in Binder" src="https://mybinder.org/badge_logo.svg" style="height:1.1em;vertical-align:middle" />
             <span>Run in Binder</span>
           </a>
           <a class="btn" href="${ghUrl}" target="_blank" rel="noopener">View on GitHub</a>
         `;
         body.appendChild(actionsEl);
 
-        // Add interactive live editing and save buttons
+        // Live + Save buttons
         const liveBtn = document.createElement('button');
         liveBtn.className = 'btn live-btn';
         liveBtn.dataset.target = base;
@@ -84,14 +82,14 @@
         saveBtn.textContent = 'Save to GitHub';
         actionsEl.appendChild(saveBtn);
 
-        // Expand/Collapse preview height button inside actions
+        // Expand height button
         const expandBtn = document.createElement('button');
-        expandBtn.className = 'expand-btn';
+        expandBtn.className = 'btn expand-btn';
         expandBtn.dataset.target = base;
         expandBtn.textContent = 'Expand Preview';
         actionsEl.appendChild(expandBtn);
 
-        // Preview wrapper containing iframe and TOC
+        // Preview wrapper (iframe + TOC)
         const preview = document.createElement('div');
         preview.className = 'preview-wrapper';
         preview.innerHTML = `
@@ -103,22 +101,20 @@
         `;
         body.appendChild(preview);
 
-        // Append body to card
+        // Assemble
         card.appendChild(body);
-        // Append card to list
         ul.appendChild(card);
 
-        // Toggle card open/close on header click
+        // Collapse toggle
         header.addEventListener('click', () => {
           const arrowEl = header.querySelector('.arrow');
           const isOpen = card.classList.toggle('open');
           arrowEl.textContent = isOpen ? '▼' : '▶';
         });
 
-        // Setup expand preview height button
+        // Expand height
         const iframe = preview.querySelector(`#frame-${base}`);
         expandBtn.addEventListener('click', (e) => {
-          // Prevent click from toggling the card collapse
           e.stopPropagation();
           const btn = e.currentTarget;
           const expanded = btn.dataset.expanded === '1';
@@ -128,29 +124,26 @@
           btn.dataset.expanded = expanded ? '0' : '1';
         });
 
-        // Load metadata badges (with async to fetch last updated time)
+        // Badges
         await addBadges(it, base);
 
-        // Build TOC and copy buttons once iframe loads
+        // TOC + copy buttons when iframe loads
         iframe.addEventListener('load', () => {
           const tocBox = preview.querySelector('.toc-body');
           handleIframe(iframe, tocBox);
         });
 
-        // Attach handler for Make Live button
+        // Live + Save handlers
         liveBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          const baseName = e.currentTarget.dataset.target;
-          initLive(baseName);
+          initLive(e.currentTarget.dataset.target);
         });
-
-        // Attach handler for Save to GitHub button
         saveBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          const baseName = e.currentTarget.dataset.target;
-          saveNotebookToGitHub(baseName);
+          saveNotebookToGitHub(e.currentTarget.dataset.target);
         });
       }
+
       if (!ul.children.length) {
         ul.innerHTML = '<li>No notebooks found yet. Add .ipynb files to /ipynb/ and push.</li>';
       }
@@ -158,18 +151,18 @@
       ul.innerHTML = `<li>Could not load list. Error: ${err.message}</li>`;
     }
   }
-  // metadata badges
+
+  // Badges
   async function addBadges(item, base) {
     const wrap = document.getElementById(`badges-${base}`);
     if (!wrap) return;
-    // Size badge (convert bytes to KB with one decimal)
+
     if (typeof item.size === 'number') {
       const kb = (item.size / 1024).toFixed(1) + ' KB';
       wrap.insertAdjacentHTML('beforeend', `<span class="badge">${kb}</span>`);
     }
-    // Language badge (simple heuristic: .ipynb -> python)
     wrap.insertAdjacentHTML('beforeend', `<span class="badge">python</span>`);
-    // Last updated date/time badge. Try to fetch the latest commit date for this file from GitHub.
+
     try {
       const pathParam = encodeURIComponent(`ipynb/${item.name}`);
       const apiUrl = `https://api.github.com/repos/${SITE.user}/${SITE.repo}/commits?path=${pathParam}&page=1&per_page=1`;
@@ -177,37 +170,26 @@
       if (resp.ok) {
         const commitData = await resp.json();
         if (Array.isArray(commitData) && commitData.length > 0) {
-          const commitDateStr = commitData[0].commit && commitData[0].commit.committer && commitData[0].commit.committer.date;
-          if (commitDateStr) {
-            const commitDate = new Date(commitDateStr);
-            // Convert to user's timezone (America/Chicago) and include date & time
-            const dateStr = commitDate.toLocaleString('en-US', { timeZone: 'America/Chicago' });
-            wrap.insertAdjacentHTML('beforeend', `<span class="badge">${dateStr}</span>`);
+          const d = commitData[0]?.commit?.committer?.date;
+          if (d) {
+            const s = new Date(d).toLocaleString('en-US', { timeZone: 'America/Chicago' });
+            wrap.insertAdjacentHTML('beforeend', `<span class="badge">${s}</span>`);
             return;
           }
         }
       }
-    } catch (err) {
-      // ignore errors and fallback
-    }
-    // Fallback: use current date/time in user's timezone
+    } catch (_) {}
+
     const fallback = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' });
     wrap.insertAdjacentHTML('beforeend', `<span class="badge">${fallback}</span>`);
   }
-  // handle iframe loaded: build TOC and copy buttons
+
+  // Build TOC and copy buttons inside iframe
   function handleIframe(iframe, tocBox) {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
-    if (!doc) {
-      tocBox.textContent = 'Unable to read preview.';
-      return;
-    }
+    if (!doc) { tocBox.textContent = 'Unable to read preview.'; return; }
 
-    // Mark code cells for Thebe. Thebe requires `data-executable` and
-    // optional `data-language` attributes on the elements that should become
-    // executable. When the user clicks the "Make Live" button, thebe will
-    // search for these attributes and convert the associated elements into
-    // interactive cells. We mark each pre tag inside input areas. Avoid
-    // duplicating attributes on subsequent calls by checking the flag.
+    // Mark code blocks so Thebe can activate them later
     try {
       const codeBlocks = doc.querySelectorAll('div.input_area pre, pre');
       codeBlocks.forEach((pre) => {
@@ -217,10 +199,9 @@
           pre.setAttribute('data-language', 'python');
         }
       });
-    } catch (err) {
-      // ignore errors marking code blocks
-    }
-    // gather headings
+    } catch {}
+
+    // TOC
     let headings = doc.querySelectorAll('.text_cell_render h1, .text_cell_render h2, .text_cell_render h3, h1, h2, h3');
     headings = Array.from(headings).filter(h => h.textContent.trim().length > 0);
     if (!headings.length) {
@@ -229,29 +210,30 @@
       const list = document.createElement('div');
       headings.forEach((h, i) => {
         if (!h.id) h.id = 'nb-h-' + i;
-        const level = h.tagName.toLowerCase();
         const a = document.createElement('a');
         a.href = '#' + h.id;
         a.textContent = h.textContent.trim();
-        a.style.marginLeft = (level === 'h2' ? '12px' : level === 'h3' ? '24px' : '0');
+        const lvl = h.tagName.toLowerCase();
+        a.style.marginLeft = (lvl === 'h2' ? '12px' : lvl === 'h3' ? '24px' : '0');
         a.addEventListener('click', ev => {
           ev.preventDefault();
-          const target = doc.getElementById(h.id);
-          if (target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+          const t = doc.getElementById(h.id);
+          if (t) t.scrollIntoView({ behavior:'smooth', block:'start' });
         });
         list.appendChild(a);
       });
       tocBox.innerHTML = '';
       tocBox.appendChild(list);
     }
-    // add copy buttons to code blocks
+
+    // Copy buttons
     const blocks = doc.querySelectorAll('div.input_area pre, pre');
     blocks.forEach(pre => {
       if (pre.dataset.copyAdded) return;
       pre.dataset.copyAdded = '1';
       const btn = doc.createElement('button');
       btn.textContent = 'Copy';
-      btn.style.cssText = `position:absolute; right:8px; top:8px; font-size:12px; border:1px solid #ccc; background:#f6f6f6; padding:2px 6px; border-radius:4px; cursor:pointer;`;
+      btn.style.cssText = 'position:absolute;right:8px;top:8px;font-size:12px;border:1px solid #ccc;background:#f6f6f6;padding:2px 6px;border-radius:4px;cursor:pointer;';
       const wrap = doc.createElement('div');
       wrap.style.position = 'relative';
       pre.parentNode.insertBefore(wrap, pre);
@@ -269,155 +251,109 @@
       });
     });
   }
+
   document.addEventListener('DOMContentLoaded', loadList);
 
-  /*
-   * Initialize live editing for a notebook. When invoked, this function
-   * configures Thebe with binder options that point at the current GitHub
-   * repository and branch, and triggers Thebe's bootstrap on the iframe
-   * document corresponding to the notebook. It is called when the user
-   * clicks the "Make Live" button on a notebook card. If Thebe has
-   * already been activated for that iframe, the function does nothing.
-   */
+  // === Make Live: inject Thebe into the iframe and bootstrap there ===
   async function initLive(baseName) {
     try {
-      const iframe = document.getElementById(`frame-${baseName}`);
-      if (!iframe) return;
-      const doc = iframe.contentDocument || iframe.contentWindow.document;
-      // Check if thebe has already been initialised on this document
-      if (doc && doc.querySelector('[data-thebe-initialized]')) return;
-      // Define thebe configuration pointing to the repository used for Binder.
-      // We specify a selector that targets any element with the
-      // `data-executable` attribute. Thebe will search within the current
-      // iframe document for these elements.
-      const binderRepo = `${SITE.user}/${SITE.repo}`;
-      window.thebe_config = {
+      const iframe = document.getElementById('frame-' + baseName);
+      const doc = iframe?.contentDocument || iframe?.contentWindow?.document;
+      if (!doc) return alert('Preview not ready.');
+
+      // 1) mark code blocks (in case iframe loaded before)
+      const codeBlocks = doc.querySelectorAll('.input_area pre, pre');
+      codeBlocks.forEach(el => {
+        const host = el.closest('pre') || el;
+        if (!host.dataset.executable) host.setAttribute('data-executable', 'true');
+        if (!host.dataset.language)   host.setAttribute('data-language', 'python');
+      });
+
+      // 2) inject thebe.js into the iframe if not present
+      await new Promise((resolve, reject) => {
+        if (doc.defaultView.thebe) return resolve();
+        const s = doc.createElement('script');
+        s.src = 'assets/thebe.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('Failed to load thebe.js inside iframe'));
+        doc.head.appendChild(s);
+      });
+
+      // 3) configure + bootstrap from iframe context
+      doc.defaultView.thebe_config = {
         binderOptions: {
-          repo: binderRepo,
+          repo: `${SITE.user}/${SITE.repo}`,
           ref: SITE.branch || 'main',
-          binderUrl: 'https://mybinder.org',
+          binderUrl: 'https://mybinder.org'
         },
-        kernelName: 'python3',
+        selector: '[data-executable]',
         requestKernel: true,
-        useBinderSplash: true,
-        selector: '[data-executable]'
+        useBinderSplash: true
       };
-      // Add an attribute to flag initialization
-      if (doc) {
-        doc.body.setAttribute('data-thebe-initialized', '1');
-      }
-      // If Thebe has loaded, bootstrap will transform marked cells into
-      // interactive widgets. We pass the iframe's document to restrict the
-      // search to the notebook preview. Without this argument Thebe would
-      // search the main document, which does not contain the code cells.
-      if (window.thebe && typeof window.thebe.bootstrap === 'function') {
-        window.thebe.bootstrap(doc);
-      } else {
-        console.warn('Thebe is not yet loaded on the page.');
-        alert('Thebe could not be loaded. Please ensure you have an internet connection and that the Thebe script is accessible.');
-      }
-    } catch (err) {
-      console.error('Error initialising live editing:', err);
-      alert('An error occurred while enabling live editing.');
+
+      await doc.defaultView.thebe.bootstrap();
+      console.log('Thebe bootstrapped inside iframe.');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to start Thebe (Binder). Check network/Binder status.');
     }
   }
 
-  /*
-   * Save the current notebook back to GitHub using the REST API. This function
-   * prompts the user for a GitHub personal access token (PAT) with at least
-   * repo:contents write permissions. It retrieves the latest commit SHA and
-   * content of the notebook, extracts the updated code from the live editor,
-   * updates the JSON for each code cell, encodes it, and pushes a new
-   * commit to the same path on the specified branch. On success, the page
-   * reloads the notebook preview. Errors are reported to the user.
-   */
+  // === Save back to GitHub (unchanged) ===
   async function saveNotebookToGitHub(baseName) {
     try {
-      // Prompt user for PAT. Do not store this token anywhere except
-      // in-memory; the API call uses it in the Authorization header.
       const token = prompt('Enter your GitHub Personal Access Token (PAT) with repo write access:');
-      if (!token) {
-        alert('Save cancelled. No token provided.');
-        return;
-      }
+      if (!token) { alert('Save cancelled. No token provided.'); return; }
+
       const owner = SITE.user;
       const repo = SITE.repo;
       const branch = SITE.branch || 'main';
       const filename = `${baseName}.ipynb`;
       const path = `ipynb/${filename}`;
-      // Get current file metadata from GitHub (sha and content)
+
       const metaResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {
-        headers: {
-          'Accept': 'application/vnd.github+json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Accept': 'application/vnd.github+json', 'Authorization': `Bearer ${token}` }
       });
-      if (!metaResp.ok) {
-        const msg = await metaResp.text();
-        throw new Error(`Failed to fetch notebook metadata: ${metaResp.status} ${msg}`);
-      }
+      if (!metaResp.ok) throw new Error('Failed to fetch notebook metadata.');
       const meta = await metaResp.json();
       const sha = meta.sha;
-      // Decode existing notebook JSON
+
       const originalContent = atob(meta.content.replace(/\n/g, ''));
-      let nb;
-      try {
-        nb = JSON.parse(originalContent);
-      } catch (err) {
-        throw new Error('Failed to parse original notebook content.');
-      }
-      // Extract updated code from the interactive environment in the iframe
+      let nb = JSON.parse(originalContent);
+
       const iframe = document.getElementById(`frame-${baseName}`);
       const doc = iframe.contentDocument || iframe.contentWindow.document;
       if (!doc) throw new Error('Unable to access iframe document for saving.');
-      // Find CodeMirror instances or pre tags representing code cells
+
       const codeBlocks = doc.querySelectorAll('div.input_area .CodeMirror, div.input_area pre');
       let codeIndex = 0;
       nb.cells = nb.cells.map((cell) => {
         if (cell.cell_type === 'code') {
           const codeEl = codeBlocks[codeIndex];
           let code = '';
-          if (!codeEl) {
-            code = cell.source.join('');
-          } else {
-            // If CodeMirror is present, extract value; else fallback to innerText
-            if (codeEl.CodeMirror && typeof codeEl.CodeMirror.getValue === 'function') {
-              code = codeEl.CodeMirror.getValue();
-            } else {
-              code = codeEl.innerText || '';
-            }
-          }
+          if (codeEl?.CodeMirror?.getValue) code = codeEl.CodeMirror.getValue();
+          else code = (codeEl?.innerText) || cell.source.join('');
           codeIndex++;
-          cell.source = Array.isArray(code) ? code : code.split(/\n/).map((line, idx, arr) => idx < arr.length - 1 ? line + '\n' : line);
+          cell.source = code.split(/\n/).map((line, i, arr) => i < arr.length - 1 ? line + '\n' : line);
         }
         return cell;
       });
-      // Encode notebook as base64
+
       const updatedJSON = JSON.stringify(nb, null, 1);
       const updatedBase64 = btoa(unescape(encodeURIComponent(updatedJSON)));
-      // Prepare commit message
-      const message = `Update ${filename} via interactive site`;
-      // Push update via GitHub API
+
       const putResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
         method: 'PUT',
         headers: {
           'Accept': 'application/vnd.github+json',
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          message: message,
-          content: updatedBase64,
-          sha: sha,
-          branch: branch,
-        }),
+        body: JSON.stringify({ message: `Update ${filename} via interactive site`, content: updatedBase64, sha, branch })
       });
-      if (!putResp.ok) {
-        const msg = await putResp.text();
-        throw new Error(`Failed to commit notebook: ${putResp.status} ${msg}`);
-      }
+      if (!putResp.ok) throw new Error('Failed to commit notebook.');
+
       alert(`Notebook ${filename} saved successfully to GitHub.`);
-      // Reload preview to reflect updated content
       iframe.src = iframe.src;
     } catch (err) {
       console.error(err);
@@ -429,7 +365,7 @@
 <body>
   <header>
     <h1>My Colab Notebooks</h1>
-    <p>Static HTML previews plus one‑click launch in Colab.</p>
+    <p>Static HTML previews plus one-click launch in Colab.</p>
   </header>
   <main>
     <ul id="notebook-list" class="grid"></ul>
