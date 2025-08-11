@@ -20,30 +20,40 @@
       const items = Array.isArray(data) ? data : [];
       ul.innerHTML = '';
       for (const it of items) {
+        // Only process notebook files
         if (!it.name.endsWith('.ipynb')) continue;
         const base = it.name.replace(/\.ipynb$/, '');
         const htmlUrl = `notebooks/${base}.html`;
         const colabUrl = `https://colab.research.google.com/github/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
         const ghUrl = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
-          // Construct a Binder URL that opens the notebook in JupyterLab
+        // Construct a Binder URL that opens the notebook in JupyterLab
         const binderUrl = `https://mybinder.org/v2/gh/${user}/${repo}/${branch}?urlpath=lab/tree/ipynb/${encodeURIComponent(it.name)}`;
-      
+
         const li = document.createElement('li');
         li.className = 'card';
+        /*
+         * In addition to listing buttons, embed the rendered HTML version of the notebook
+         * directly into the page via an iframe. This allows visitors to view the notebook
+         * without navigating away from the site. The iframe source points at the
+         * pre‑generated HTML in the `notebooks/` folder. A fixed height is used to
+         * provide scrollable content within the card.
+         */
         li.innerHTML = `
           <div class="card-title">${it.name}</div>
           <div class="card-actions">
-            <a class="btn" href="${htmlUrl}">View HTML</a>
-            <a class="btn" href="${colabUrl}">
+            <a class="btn" href="${htmlUrl}" target="_blank" rel="noopener">View HTML</a>
+            <a class="btn" href="${colabUrl}" target="_blank" rel="noopener">
               <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="height:1.1em; vertical-align:middle;" />
               <span>Open in Colab</span>
             </a>
-
-            <a class="btn" href="${binderUrl}">
+            <a class="btn" href="${binderUrl}" target="_blank" rel="noopener">
               <img alt="Launch in Binder" src="https://mybinder.org/badge_logo.svg" style="height:1.1em; vertical-align:middle;" />
               <span>Run in Binder</span>
             </a>
-            <a class="btn ghost" href="${ghUrl}">View on GitHub</a>
+            <a class="btn ghost" href="${ghUrl}" target="_blank" rel="noopener">View on GitHub</a>
+          </div>
+          <div class="notebook-embed">
+            <iframe src="${htmlUrl}" loading="lazy" style="width:100%; height:600px; border:1px solid #ddd; border-radius:8px;"></iframe>
           </div>`;
         ul.appendChild(li);
       }
