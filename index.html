@@ -6,172 +6,167 @@
   <title>My Notebooks</title>
   <link rel="stylesheet" href="assets/style.css" />
   <script defer src="config.js"></script>
- <script>
-async function loadList() {
-  const ul = document.querySelector('#notebook-list');
-  try {
-    const user = SITE.user;
-    const repo = SITE.repo;
-    const branch = SITE.branch || 'main';
-    const api = `https://api.github.com/repos/${user}/${repo}/contents/ipynb?ref=${branch}`;
-    const res = await fetch(api, { headers: { 'Accept': 'application/vnd.github+json' }});
-    if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
-    const items = Array.isArray(await res.json()) ? await res.json() : [];
-    ul.innerHTML = '';
+  <script>
+  async function loadList() {
+    const ul = document.querySelector('#notebook-list');
+    try {
+      const user = SITE.user;
+      const repo = SITE.repo;
+      const branch = SITE.branch || 'main';
+      const api = `https://api.github.com/repos/${user}/${repo}/contents/ipynb?ref=${branch}`;
 
-    for (const it of items) {
-      if (!it.name.endsWith('.ipynb')) continue;
-      const base = it.name.replace(/\.ipynb$/, '');
-      const htmlUrl   = `notebooks/${base}.html`;
-      const colabUrl  = `https://colab.research.google.com/github/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
-      const ghUrl     = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
-      const binderUrl = `https://mybinder.org/v2/gh/${user}/${repo}/${branch}?urlpath=lab/tree/ipynb/${encodeURIComponent(it.name)}`;
+      const res = await fetch(api, { headers: { 'Accept': 'application/vnd.github+json' }});
+      if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
 
-      // Card: title + badges + buttons
-      const card = document.createElement('li');
-      card.className = 'card';
-      card.innerHTML = `
-        <div class="card-title">${it.name}</div>
-        <div class="badges" id="badges-${base}"></div>
-        <div class="card-actions">
-          <a class="btn" href="${htmlUrl}" target="_blank" rel="noopener">View HTML</a>
-          <a class="btn" href="${colabUrl}" target="_blank" rel="noopener">
-            <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="height:1.1em; vertical-align:middle;" />
-            <span>Open in Colab</span>
-          </a>
-          <a class="btn" href="${binderUrl}" target="_blank" rel="noopener">
-            <img alt="Launch in Binder" src="https://mybinder.org/badge_logo.svg" style="height:1.1em; vertical-align:middle;" />
-            <span>Run in Binder</span>
-          </a>
-          <a class="btn ghost" href="${ghUrl}" target="_blank" rel="noopener">View on GitHub</a>
-          <button class="expand-btn" data-target="${base}">Expand Preview</button>
-        </div>`;
-      ul.appendChild(card);
+      const data = await res.json();            // read once
+      const items = Array.isArray(data) ? data : [];
 
-      // Full-width preview row: iframe + TOC box
-      const embedRow = document.createElement('li');
-      embedRow.className = 'notebook-embed-row';
-      embedRow.innerHTML = `
-        <iframe class="frame" id="frame-${base}" src="${htmlUrl}" loading="lazy"></iframe>
-        <aside class="toc" id="toc-${base}"><h3>Contents</h3><div class="toc-body">Loading…</div></aside>
-      `;
-      ul.appendChild(embedRow);
+      ul.innerHTML = '';
 
-      // Expand / collapse
-      card.querySelector('.expand-btn').addEventListener('click', (e) => {
-        const f = document.getElementById('frame-' + e.currentTarget.dataset.target);
-        const btn = e.currentTarget;
-        const expanded = btn.dataset.expanded === '1';
-        f.style.height = expanded ? '500px' : '1000px';
-        btn.textContent = expanded ? 'Expand Preview' : 'Collapse Preview';
-        btn.dataset.expanded = expanded ? '0' : '1';
-      });
+      for (const it of items) {
+        if (!it.name.endsWith('.ipynb')) continue;
 
-      // Build TOC after iframe loads (same-origin, so we can read it)
-      const iframe = document.getElementById('frame-' + base);
-      const tocBox = document.getElementById('toc-' + base).querySelector('.toc-body');
+        const base      = it.name.replace(/\.ipynb$/, '');
+        const htmlUrl   = `notebooks/${base}.html`;
+        const colabUrl  = `https://colab.research.google.com/github/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
+        const ghUrl     = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
+        const binderUrl = `https://mybinder.org/v2/gh/${user}/${repo}/${branch}?urlpath=lab/tree/ipynb/${encodeURIComponent(it.name)}`;
 
-      iframe.addEventListener('load', () => {
-        const doc = iframe.contentDocument;
-        if (!doc) { tocBox.textContent = 'Unable to read preview.'; return; }
+        // Card: title + badges + buttons
+        const card = document.createElement('li');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-title">${it.name}</div>
+          <div class="badges" id="badges-${base}"></div>
+          <div class="card-actions">
+            <a class="btn" href="${htmlUrl}" target="_blank" rel="noopener">View HTML</a>
+            <a class="btn" href="${colabUrl}" target="_blank" rel="noopener">
+              <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="height:1.1em; vertical-align:middle;" />
+              <span>Open in Colab</span>
+            </a>
+            <a class="btn" href="${binderUrl}" target="_blank" rel="noopener">
+              <img alt="Launch in Binder" src="https://mybinder.org/badge_logo.svg" style="height:1.1em; vertical-align:middle;" />
+              <span>Run in Binder</span>
+            </a>
+            <a class="btn ghost" href="${ghUrl}" target="_blank" rel="noopener">View on GitHub</a>
+            <button class="expand-btn" data-target="${base}">Expand Preview</button>
+          </div>`;
+        ul.appendChild(card);
 
-        // Try common nbconvert structures; fallback to plain h1/h2/h3.
-        let headings = doc.querySelectorAll('.text_cell_render h1, .text_cell_render h2, .text_cell_render h3, h1, h2, h3');
-        headings = Array.from(headings).filter(h => h.textContent.trim().length > 0);
-        if (!headings.length) { tocBox.textContent = 'No headings detected.'; return; }
+        // Full‑width preview row: iframe + TOC box
+        const embedRow = document.createElement('li');
+        embedRow.className = 'notebook-embed-row';
+        embedRow.innerHTML = `
+          <iframe class="frame" id="frame-${base}" src="${htmlUrl}" loading="lazy"></iframe>
+          <aside class="toc" id="toc-${base}">
+            <h3>Contents</h3>
+            <div class="toc-body">Loading…</div>
+          </aside>`;
+        ul.appendChild(embedRow);
 
-        // Assign IDs if missing and build list.
-        const list = document.createElement('div');
-        headings.forEach((h, i) => {
-          if (!h.id) h.id = 'nb-h-' + i;
-          const level = h.tagName.toLowerCase(); // h1/h2/h3
-          const a = document.createElement('a');
-          a.href = '#' + h.id;
-          a.textContent = h.textContent.trim();
-          // indent by level
-          a.style.marginLeft = (level === 'h2' ? '12px' : level === 'h3' ? '24px' : '0');
-          a.addEventListener('click', (ev) => {
-            ev.preventDefault();
-            // Smooth scroll inside the iframe
-            const target = doc.getElementById(h.id);
-            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          });
-          list.appendChild(a);
+        // Expand / collapse
+        card.querySelector('.expand-btn').addEventListener('click', (e) => {
+          const f = document.getElementById('frame-' + e.currentTarget.dataset.target);
+          const btn = e.currentTarget;
+          const expanded = btn.dataset.expanded === '1';
+          f.style.height = expanded ? '500px' : '1000px';
+          btn.textContent = expanded ? 'Expand Preview' : 'Collapse Preview';
+          btn.dataset.expanded = expanded ? '0' : '1';
         });
 
-        tocBox.innerHTML = '';
-        tocBox.appendChild(list);
+        // Build TOC + copy buttons after iframe loads
+        const iframe = document.getElementById('frame-' + base);
+        const tocBox = document.getElementById('toc-' + base).querySelector('.toc-body');
 
-        // Optional: add small copy buttons next to code cells
-        addCopyButtons(doc);
-      });
+        iframe.addEventListener('load', () => {
+          const doc = iframe.contentDocument;
+          if (!doc) { tocBox.textContent = 'Unable to read preview.'; return; }
 
-      // Metadata badges: size, language, date (from GitHub API listing)
-      addBadges(it, base);
-    }
+          // Grab headings (nbconvert classic + generic)
+          let headings = doc.querySelectorAll('.text_cell_render h1, .text_cell_render h2, .text_cell_render h3, h1, h2, h3');
+          headings = Array.from(headings).filter(h => h.textContent.trim().length > 0);
+          if (!headings.length) { tocBox.textContent = 'No headings detected.'; return; }
 
-    if (!ul.children.length) {
-      ul.innerHTML = '<li>No notebooks found yet. Add .ipynb files to /ipynb/ and push.</li>';
-    }
-  } catch (err) {
-    document.querySelector('#notebook-list').innerHTML =
-      `<li>Could not load list. Error: ${err.message}</li>`;
-  }
-}
+          const list = document.createElement('div');
+          headings.forEach((h, i) => {
+            if (!h.id) h.id = 'nb-h-' + i;
+            const level = h.tagName.toLowerCase();
+            const a = document.createElement('a');
+            a.href = '#' + h.id;
+            a.textContent = h.textContent.trim();
+            a.style.marginLeft = (level === 'h2' ? '12px' : level === 'h3' ? '24px' : '0');
+            a.addEventListener('click', (ev) => {
+              ev.preventDefault();
+              const target = doc.getElementById(h.id);
+              if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            list.appendChild(a);
+          });
 
-function addBadges(item, base) {
-  const wrap = document.getElementById('badges-' + base);
-  if (!wrap) return;
-  // Size
-  if (typeof item.size === 'number') {
-    const kb = (item.size / 1024).toFixed(1) + ' KB';
-    wrap.insertAdjacentHTML('beforeend', `<span class="badge">${kb}</span>`);
-  }
-  // Language (simple heuristic: .ipynb -> python)
-  wrap.insertAdjacentHTML('beforeend', `<span class="badge">python</span>`);
-  // Date (from API’s commit info requires another call; quick fallback = today)
-  const today = new Date().toISOString().slice(0,10);
-  wrap.insertAdjacentHTML('beforeend', `<span class="badge">${today}</span>`);
-}
+          tocBox.innerHTML = '';
+          tocBox.appendChild(list);
 
-function addCopyButtons(doc) {
-  // Classic nbconvert code blocks:
-  const blocks = doc.querySelectorAll('div.input_area pre, pre');
-  blocks.forEach((pre, idx) => {
-    // Prevent duplicates
-    if (pre.dataset.copyAdded) return;
-    pre.dataset.copyAdded = '1';
+          addCopyButtons(doc);
+        });
 
-    const btn = doc.createElement('button');
-    btn.textContent = 'Copy';
-    btn.style.cssText = `
-      position:absolute; right:8px; top:8px; font-size:12px;
-      border:1px solid #ccc; background:#f6f6f6; padding:2px 6px; border-radius:4px; cursor:pointer;
-    `;
-
-    // Wrap pre in a relative container to position button
-    const wrap = doc.createElement('div');
-    wrap.style.position = 'relative';
-    pre.parentNode.insertBefore(wrap, pre);
-    wrap.appendChild(pre);
-    wrap.appendChild(btn);
-
-    btn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(pre.innerText);
-        btn.textContent = 'Copied!';
-        setTimeout(() => (btn.textContent = 'Copy'), 1200);
-      } catch {
-        btn.textContent = 'Failed';
-        setTimeout(() => (btn.textContent = 'Copy'), 1200);
+        // Metadata badges
+        addBadges(it, base);
       }
+
+      if (!ul.children.length) {
+        ul.innerHTML = '<li>No notebooks found yet. Add .ipynb files to /ipynb/ and push.</li>';
+      }
+    } catch (err) {
+      ul.innerHTML = `<li>Could not load list. Error: ${err.message}</li>`;
+    }
+  }
+
+  function addBadges(item, base) {
+    const wrap = document.getElementById('badges-' + base);
+    if (!wrap) return;
+    if (typeof item.size === 'number') {
+      const kb = (item.size / 1024).toFixed(1) + ' KB';
+      wrap.insertAdjacentHTML('beforeend', `<span class="badge">${kb}</span>`);
+    }
+    wrap.insertAdjacentHTML('beforeend', `<span class="badge">python</span>`);
+    const today = new Date().toISOString().slice(0,10);
+    wrap.insertAdjacentHTML('beforeend', `<span class="badge">${today}</span>`);
+  }
+
+  function addCopyButtons(doc) {
+    const blocks = doc.querySelectorAll('div.input_area pre, pre');
+    blocks.forEach((pre) => {
+      if (pre.dataset.copyAdded) return;
+      pre.dataset.copyAdded = '1';
+
+      const btn = doc.createElement('button');
+      btn.textContent = 'Copy';
+      btn.style.cssText = `
+        position:absolute; right:8px; top:8px; font-size:12px;
+        border:1px solid #ccc; background:#f6f6f6; padding:2px 6px; border-radius:4px; cursor:pointer;
+      `;
+
+      const wrap = doc.createElement('div');
+      wrap.style.position = 'relative';
+      pre.parentNode.insertBefore(wrap, pre);
+      wrap.appendChild(pre);
+      wrap.appendChild(btn);
+
+      btn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(pre.innerText);
+          btn.textContent = 'Copied!';
+          setTimeout(() => (btn.textContent = 'Copy'), 1200);
+        } catch {
+          btn.textContent = 'Failed';
+          setTimeout(() => (btn.textContent = 'Copy'), 1200);
+        }
+      });
     });
-  });
-}
+  }
 
-document.addEventListener('DOMContentLoaded', loadList);
-</script>
-
+  document.addEventListener('DOMContentLoaded', loadList);
+  </script>
 </head>
 <body>
   <header>
@@ -186,5 +181,3 @@ document.addEventListener('DOMContentLoaded', loadList);
   </footer>
 </body>
 </html>
-
-
