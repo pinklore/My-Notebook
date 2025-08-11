@@ -255,58 +255,55 @@
   document.addEventListener('DOMContentLoaded', loadList);
 
   // === Make Live: inject Thebe into the iframe and bootstrap there ===
-  async function initLive(baseName) {
-    try {
-      const iframe = document.getElementById('frame-' + baseName);
-      const doc = iframe?.contentDocument || iframe?.contentWindow?.document;
-      if (!doc) return alert('Preview not ready.');
+async function initLive(baseName) {
+  const iframe = document.getElementById('frame-' + baseName);
+  const doc = iframe?.contentDocument || iframe?.contentWindow?.document;
+  if (!doc) { alert('Preview not ready.'); return; }
 
-      // 1) mark code blocks (in case iframe loaded before)
-      const codeBlocks = doc.querySelectorAll('.input_area pre, pre');
-      codeBlocks.forEach(el => {
-        const host = el.closest('pre') || el;
-        if (!host.dataset.executable) host.setAttribute('data-executable', 'true');
-        if (!host.dataset.language)   host.setAttribute('data-language', 'python');
-      });
+  // 1) Mark code blocks so Thebe can activate them
+  const codeBlocks = doc.querySelectorAll('.input_area pre, pre');
+  codeBlocks.forEach(el => {
+    const host = el.closest('pre') || el;
+    if (!host.dataset.executable) host.setAttribute('data-executable', 'true');
+    if (!host.dataset.language)   host.setAttribute('data-language', 'python');
+  });
 
-      // 2) inject thebe.js into the iframe if not present
-      await new Promise((resolve, reject) => {
-        if (doc.defaultView.thebe) return resolve();
-       // Build an absolute URL to thebe.js so the iframe can load it
-const thebeSrc = `${location.origin}/${SITE.repo}/assets/thebe.js`;  // e.g. https://pinklore.github.io/My-Notebook/assets/thebe.js
-await new Promise((resolve, reject) => {
-  if (doc.defaultView.thebe) return resolve();
-  const s = doc.createElement('script');
-  s.src = thebeSrc;
-  s.onload = resolve;
-  s.onerror = () => reject(new Error('Failed to load thebe.js inside iframe'));
-  doc.head.appendChild(s);
-});
+  // 2) Inject thebe.js into the iframe (absolute path so it doesn't 404)
+  const basePath = location.pathname.endsWith('/')
+    ? location.pathname
+    : location.pathname.replace(/[^/]+$/, '/');
+  const thebeSrc = `${location.origin}${basePath}assets/thebe.js`;
 
-        s.onload = resolve;
-        s.onerror = () => reject(new Error('Failed to load thebe.js inside iframe'));
-        doc.head.appendChild(s);
-      });
+  await new Promise((resolve, reject) => {
+    if (doc.defaultView.thebe) return resolve();
+    const s = doc.createElement('script');
+    s.src = thebeSrc;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Failed to load thebe.js inside iframe'));
+    doc.head.appendChild(s);
+  });
 
-      // 3) configure + bootstrap from iframe context
-      doc.defaultView.thebe_config = {
-        binderOptions: {
-          repo: `${SITE.user}/${SITE.repo}`,
-          ref: SITE.branch || 'main',
-          binderUrl: 'https://mybinder.org'
-        },
-        selector: '[data-executable]',
-        requestKernel: true,
-        useBinderSplash: true
-      };
+  // 3) Configure + bootstrap Thebe in the iframe context
+  doc.defaultView.thebe_config = {
+    binderOptions: {
+      repo: `${SITE.user}/${SITE.repo}`,
+      ref: SITE.branch || 'main',
+      binderUrl: 'https://mybinder.org'
+    },
+    selector: '[data-executable]',
+    requestKernel: true,
+    useBinderSplash: true,
+    kernelName: 'python3'
+  };
 
-      await doc.defaultView.thebe.bootstrap();
-      console.log('Thebe bootstrapped inside iframe.');
-    } catch (e) {
-      console.error(e);
-      alert('Failed to start Thebe (Binder). Check network/Binder status.');
-    }
+  try {
+    await doc.defaultView.thebe.bootstrap();
+    console.log('Thebe bootstrapped inside iframe.');
+  } catch (e) {
+    console.error(e);
+    alert('Failed to start Thebe (Binder). Check network/Binder status.');
   }
+}
 
   // === Save back to GitHub (unchanged) ===
   async function saveNotebookToGitHub(baseName) {
