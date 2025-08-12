@@ -405,6 +405,7 @@ function thebeLog(msg) {
 }
 
 // Listen for status events if available (some builds expose t.on('status', ...))
+let kernelReadyFlag = false; // <- new flag we can also read from the poll loop
 const waitForThebe = () => new Promise((resolve) => {
   const t = doc.defaultView.thebe;
   if (!t || !t.on) return resolve(); // older builds may not have .on
@@ -412,6 +413,11 @@ const waitForThebe = () => new Promise((resolve) => {
     try {
       const s = typeof evt === 'string' ? evt : (evt?.status || '');
       if (s) thebeLog(s);
+      // If Thebe tells us the kernel is usable, mark ready and enable buttons
+      if (s && /(connected|ready|idle)/i.test(s)) {
+        kernelReadyFlag = true;
+        unlockThebeButtons();
+      }
     } catch {}
   });
   resolve();
@@ -454,20 +460,28 @@ try {
   thebeLog('kernel requested… waiting for ready');
 
   // Poll for kernel readiness (up to 90s)
-  let ready = false;
-  const deadline = Date.now() + 90000;
-  while (Date.now() < deadline) {
-    try {
-      const t = doc.defaultView.thebe;
-      if (t?.kernels && t.kernels.size > 0) {
-        for (const k of t.kernels.values()) {
-          if (k?.ready || k?.status === 'connected' || k?.status === 'idle') { ready = true; break; }
-        }
+let ready = false;
+  const t0 = Date.now();
+
+const deadline = Date.now() + 180000; // 3 minutes
+while (Date.now() < deadline) {
+  try {
+    // If the status listener already marked ready, stop early
+    if (kernelReadyFlag) { ready = true; break; }
+
+    const t = doc.defaultView.thebe;
+    if (t?.kernels && t.kernels.size > 0) {
+      for (const k of t.kernels.values()) {
+        if (k?.ready || /^(connected|idle)$/i.test(k?.status || '')) { ready = true; break; }
       }
-    } catch {}
-    if (ready) break;
-    await new Promise(r => setTimeout(r, 1000));
-  }
+    }
+  } catch {}
+  if (ready) break;
+  await new Promise(r => setTimeout(r, 1000));
+  thebeLog(`waiting for kernel… ${Math.round((Date.now()-t0)/1000)}s`);
+
+}
+
 
   if (!ready) {
     thebeLog('timeout waiting for kernel (opening Binder Lab)…');
