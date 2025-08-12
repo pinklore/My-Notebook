@@ -5,11 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>My Colab Notebooks</title>
   <link rel="stylesheet" href="assets/style.css" />
-  <script defer src="config.js?v=1"></script>
+<script src="config.js?v=2"></script>
 
-
-
- 
+<script>
+  // Fallback if config.js didn’t load
+  if (!window.SITE) {
+    window.SITE = { user: 'pinklore', repo: 'My-Notebook', branch: 'main' };
+    console.warn('config.js not found; using fallback SITE config.');
+  }
+</script>
 
   <!-- Lite modal styles (inline so you don't have to touch style.css) -->
   <style>
