@@ -195,127 +195,138 @@
   }
 
   // Build TOC + copy buttons inside iframe; return whether code cells exist
-  function handleIframe(iframe, tocBox) {
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-    if (!doc) { tocBox.textContent = 'Unable to read preview.'; return false; }
+// Build TOC and copy buttons inside iframe; return whether code cells exist
+function handleIframe(iframe, tocBox) {
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  if (!doc) { tocBox.textContent = 'Unable to read preview.'; return false; }
 
-    const hasCode = !!doc.querySelector('div.input_area pre, pre, .jp-Cell .jp-InputArea-editor, div.highlight pre');
+  // Only target code *inputs* (avoid outputs and generic <pre>)
+  const inputSelectors = '.input_area pre, .jp-Cell .jp-InputArea-editor';
+  const hasCode = !!doc.querySelector(inputSelectors);
 
-    // Mark code blocks for Thebe
-    try {
-      const codeBlocks = doc.querySelectorAll('div.input_area pre, pre');
-      codeBlocks.forEach((pre) => {
-        if (!pre.dataset.thebeAdded) {
-          pre.dataset.thebeAdded = '1';
-          pre.setAttribute('data-executable', 'true');
-          pre.setAttribute('data-language', 'python');
-        }
-      });
-    } catch {}
-
-    // TOC
-    let headings = doc.querySelectorAll('.text_cell_render h1, .text_cell_render h2, .text_cell_render h3, h1, h2, h3');
-    headings = Array.from(headings).filter(h => h.textContent.trim().length > 0);
-    if (!headings.length) {
-      tocBox.textContent = 'No headings detected.';
-    } else {
-      const list = document.createElement('div');
-      headings.forEach((h, i) => {
-        if (!h.id) h.id = 'nb-h-' + i;
-        const a = document.createElement('a');
-        a.href = '#' + h.id;
-        a.textContent = h.textContent.trim();
-        const lvl = h.tagName.toLowerCase();
-        a.style.marginLeft = (lvl === 'h2' ? '12px' : lvl === 'h3' ? '24px' : '0');
-        a.addEventListener('click', ev => {
-          ev.preventDefault();
-          h.scrollIntoView({ behavior:'smooth', block:'start' });
-        });
-        list.appendChild(a);
-      });
-      tocBox.innerHTML = '';
-      tocBox.appendChild(list);
-    }
-
-    // Copy buttons
-    const blocks = doc.querySelectorAll('div.input_area pre, pre');
-    blocks.forEach(pre => {
-      if (pre.dataset.copyAdded) return;
-      pre.dataset.copyAdded = '1';
-      const btn = doc.createElement('button');
-      btn.textContent = 'Copy';
-      btn.style.cssText = 'position:absolute;right:8px;top:8px;font-size:12px;border:1px solid #ccc;background:#f6f6f6;padding:2px 6px;border-radius:4px;cursor:pointer;';
-      const wrap = doc.createElement('div');
-      wrap.style.position = 'relative';
-      pre.parentNode.insertBefore(wrap, pre);
-      wrap.appendChild(pre);
-      wrap.appendChild(btn);
-      btn.addEventListener('click', async () => {
-        try { await navigator.clipboard.writeText(pre.innerText); btn.textContent = 'Copied!'; }
-        catch { btn.textContent = 'Failed'; }
-        setTimeout(() => (btn.textContent = 'Copy'), 1200);
-      });
+  // Mark code inputs for Thebe (idempotent)
+  try {
+    const codeInputs = doc.querySelectorAll(inputSelectors);
+    codeInputs.forEach((el) => {
+      const host = el.closest('pre') || el;
+      if (!host.dataset.thebeAdded) {
+        host.dataset.thebeAdded = '1';
+        host.setAttribute('data-executable', 'true');
+        host.setAttribute('data-language', 'python');
+      }
     });
+  } catch {}
 
-    return hasCode;
+  // TOC (unchanged)
+  let headings = doc.querySelectorAll(
+    '.text_cell_render h1, .text_cell_render h2, .text_cell_render h3, h1, h2, h3'
+  );
+  headings = Array.from(headings).filter(h => h.textContent.trim().length > 0);
+  if (!headings.length) {
+    tocBox.textContent = 'No headings detected.';
+  } else {
+    const list = document.createElement('div');
+    headings.forEach((h, i) => {
+      if (!h.id) h.id = 'nb-h-' + i;
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent.trim();
+      const lvl = h.tagName.toLowerCase();
+      a.style.marginLeft = (lvl === 'h2' ? '12px' : lvl === 'h3' ? '24px' : '0');
+      a.addEventListener('click', ev => { ev.preventDefault(); h.scrollIntoView({behavior:'smooth', block:'start'}); });
+      list.appendChild(a);
+    });
+    tocBox.innerHTML = '';
+    tocBox.appendChild(list);
   }
+
+  // Copy buttons (overlay; do NOT wrap the <pre>, to avoid breaking Thebe)
+  const areas = doc.querySelectorAll('div.input_area');
+  areas.forEach(area => {
+    if (area.querySelector('.nb-copy-btn')) return;
+    area.style.position = area.style.position || 'relative';
+    const btn = doc.createElement('button');
+    btn.className = 'nb-copy-btn';
+    btn.textContent = 'Copy';
+    btn.style.cssText = 'position:absolute;right:8px;top:8px;font-size:12px;border:1px solid #ccc;background:#f6f6f6;padding:2px 6px;border-radius:4px;cursor:pointer;';
+    btn.addEventListener('click', async () => {
+      const pre = area.querySelector('pre');
+      const text = pre ? pre.innerText : '';
+      try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied!'; }
+      catch { btn.textContent = 'Failed'; }
+      setTimeout(() => (btn.textContent = 'Copy'), 1200);
+    });
+    area.appendChild(btn);
+  });
+
+  return hasCode;
+}
+
 
   document.addEventListener('DOMContentLoaded', loadList);
 
   // Make Live: inject Thebe into the iframe and bootstrap there
-  async function initLive(baseName) {
-    const iframe = document.getElementById('frame-' + baseName);
-    const doc = iframe?.contentDocument || iframe?.contentWindow?.document;
-    if (!doc) { alert('Preview not ready.'); return; }
 
-    // Guard: if no code cells, bail politely
-    const hasCode = !!doc.querySelector('div.input_area pre, pre, .jp-Cell .jp-InputArea-editor, div.highlight pre');
-    if (!hasCode) { alert('No code cells found in this notebook.'); return; }
+async function initLive(baseName) {
+  const iframe = document.getElementById('frame-' + baseName);
+  const doc = iframe?.contentDocument || iframe?.contentWindow?.document;
+  if (!doc) { alert('Preview not ready.'); return; }
 
-    // Mark cells
-    const codeBlocks = doc.querySelectorAll('.input_area pre, pre');
-    codeBlocks.forEach(el => {
-      const host = el.closest('pre') || el;
-      if (!host.dataset.executable) host.setAttribute('data-executable', 'true');
-      if (!host.dataset.language)   host.setAttribute('data-language', 'python');
-    });
-
-    // Inject thebe.js into the iframe (absolute URL so it doesn't 404)
-    const basePath = location.pathname.endsWith('/')
-      ? location.pathname
-      : location.pathname.replace(/[^/]+$/, '/');
-    const thebeSrc = `${location.origin}${basePath}assets/thebe.js`;
-
-    await new Promise((resolve, reject) => {
-      if (doc.defaultView.thebe) return resolve();
-      const s = doc.createElement('script');
-      s.src = thebeSrc;
-      s.onload = resolve;
-      s.onerror = () => reject(new Error('Failed to load thebe.js inside iframe'));
-      doc.head.appendChild(s);
-    });
-
-    // Configure + bootstrap
-    doc.defaultView.thebe_config = {
-      binderOptions: {
-        repo: `${SITE.user}/${SITE.repo}`,
-        ref: SITE.branch || 'main',
-        binderUrl: 'https://mybinder.org'
-      },
-      selector: '[data-executable]',
-      requestKernel: true,
-      useBinderSplash: true,
-      kernelName: 'python3'
-    };
-
-    try {
-      await doc.defaultView.thebe.bootstrap();
-      console.log('Thebe bootstrapped inside iframe.');
-    } catch (e) {
-      console.error(e);
-      alert('Failed to start Thebe (Binder). Check network/Binder status.');
-    }
+  // If we already went live once for this iframe, do nothing (prevents duplicates)
+  if (doc.body.dataset.thebeBootstrapped === '1') {
+    console.log('[thebe] already bootstrapped for', baseName);
+    return;
   }
+
+  // Only count code *inputs*
+  const inputSelectors = '.input_area pre, .jp-Cell .jp-InputArea-editor';
+  const candidates = doc.querySelectorAll(inputSelectors);
+  if (!candidates.length) { alert('No code cells found in this notebook.'); return; }
+
+  // Ensure inputs are marked
+  candidates.forEach(el => {
+    const host = el.closest('pre') || el;
+    if (!host.dataset.executable) host.setAttribute('data-executable', 'true');
+    if (!host.dataset.language)   host.setAttribute('data-language', 'python');
+  });
+
+  // Load thebe.js into the iframe (absolute URL so it doesn't 404 from /notebooks/)
+  const basePath = location.pathname.endsWith('/')
+    ? location.pathname
+    : location.pathname.replace(/[^/]+$/, '/');
+  const thebeSrc = `${location.origin}${basePath}assets/thebe.js`;
+
+  await new Promise((resolve, reject) => {
+    if (doc.defaultView.thebe) return resolve();
+    const s = doc.createElement('script');
+    s.src = thebeSrc;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Failed to load thebe.js inside iframe'));
+    doc.head.appendChild(s);
+  });
+
+  // Configure Thebe; disable splash (prevents extra tab)
+  doc.defaultView.thebe_config = {
+    binderOptions: {
+      repo: `${SITE.user}/${SITE.repo}`,
+      ref: SITE.branch || 'main',
+      binderUrl: 'https://mybinder.org'
+    },
+    selector: '[data-executable]',
+    requestKernel: true,
+    useBinderSplash: false,   // <- stop opening a new tab
+    kernelName: 'python3'
+  };
+
+  try {
+    await doc.defaultView.thebe.bootstrap();
+    doc.body.dataset.thebeBootstrapped = '1';
+    console.log('[thebe] bootstrapped for', baseName);
+  } catch (e) {
+    console.error(e);
+    alert('Failed to start Thebe (Binder). Check network/Binder status.');
+  }
+}
 
   // Save back to GitHub
   async function saveNotebookToGitHub(baseName) {
