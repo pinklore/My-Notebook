@@ -119,9 +119,11 @@
         liveBtn.className = 'btn live-btn'; liveBtn.dataset.target = base; liveBtn.textContent = 'Make Live';
         actionsEl.appendChild(liveBtn);
 */
+       /*
         const saveBtn = document.createElement('button');
         saveBtn.className = 'btn save-btn'; saveBtn.dataset.target = base; saveBtn.textContent = 'Save to GitHub';
         actionsEl.appendChild(saveBtn);
+        */
 
         const expandBtn = document.createElement('button');
         expandBtn.className = 'btn expand-btn'; expandBtn.dataset.target = base; expandBtn.textContent = 'Expand Preview';
@@ -176,7 +178,7 @@
         });
 
     //    liveBtn.addEventListener('click', (e) => { e.stopPropagation(); initLive(e.currentTarget.dataset.target); });
-        saveBtn.addEventListener('click', (e) => { e.stopPropagation(); saveNotebookToGitHub(e.currentTarget.dataset.target); });
+      //  saveBtn.addEventListener('click', (e) => { e.stopPropagation(); saveNotebookToGitHub(e.currentTarget.dataset.target); });
       }
 
       if (!ul.children.length) ul.innerHTML = '<li>No notebooks found yet. Add .ipynb files to /ipynb/ and push.</li>';
