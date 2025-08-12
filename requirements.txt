@@ -2,7 +2,7 @@ ipykernel
 numpy
 pandas
 matplotlib
-spicy
+scipy
 scikit-learn
 torch
 torchvision
