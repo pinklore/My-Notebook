@@ -417,6 +417,33 @@ const waitForThebe = () => new Promise((resolve) => {
   resolve();
 });
 
+  // Disable/enable Thebe toolbar buttons inside the iframe
+function getThebeButtons() {
+  // Be permissive: match buttons Thebe creates by their visible text
+  const btns = Array.from(doc.querySelectorAll('button'));
+  return btns.filter(b => /^(run|run all|restart|restart & run all)$/i.test(b.textContent.trim()));
+}
+function lockThebeButtons() {
+  const btns = getThebeButtons();
+  btns.forEach(b => { b.disabled = true; b.title = 'Kernel is starting…'; });
+  // Light CSS cue for disabled buttons (iframe only)
+  if (!doc.getElementById('thebe-disable-style')) {
+    const style = doc.createElement('style');
+    style.id = 'thebe-disable-style';
+    style.textContent = `
+      button[disabled] { opacity: .5; pointer-events: none; }
+    `;
+    doc.head.appendChild(style);
+  }
+}
+function unlockThebeButtons() {
+  getThebeButtons().forEach(b => { b.disabled = false; b.title = ''; });
+}
+
+// Lock immediately (before bootstrap)
+lockThebeButtons();
+
+    
 try {
   await waitForThebe();
   const start = Date.now();
@@ -450,10 +477,15 @@ try {
     const binderLab = `https://mybinder.org/v2/gh/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(ref)}?labpath=${encodeURIComponent(nbPath)}`;
     setTimeout(() => { doc.defaultView.open(binderLab, '_blank'); }, 500);
     alert('Binder is slow or blocked. Opened full Binder Lab in a new tab.');
-  } else {
-    thebeLog(`kernel ready! (in ${((Date.now() - start)/1000).toFixed(1)}s) You can Run/Restart now.`);
-    console.log('[thebe] kernel ready for', baseName, 'in', ((Date.now()-start)/1000).toFixed(1), 's');
-  }
+      // Keep toolbar disabled since we didn’t get a working kernel in-page
+  lockThebeButtons();
+
+} else {
+  thebeLog(`kernel ready! (in ${((Date.now() - start)/1000).toFixed(1)}s) You can Run/Restart now.`);
+  unlockThebeButtons();
+  console.log('[thebe] kernel ready for', baseName, 'in', ((Date.now()-start)/1000).toFixed(1), 's');
+}
+
 } catch (e) {
   console.error(e);
   thebeLog('bootstrap failed.');
