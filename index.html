@@ -419,15 +419,25 @@
     modal = document.createElement('div');
     modal.id = 'lite-modal';
     modal.className = 'lite-modal';
-    modal.innerHTML = `
-      <div class="lite-dialog">
-        <button class="lite-close" aria-label="Close">✕</button>
-        <div class="lite-help">
-          JupyterLite opened. Tip: drag & drop your .ipynb, or
-          <b>File → Open from URL</b> (URL already copied to your clipboard).
-        </div>
-        <iframe class="lite-iframe" src="about:blank"></iframe>
-      </div>`;
+modal.innerHTML = `
+  <div class="lite-dialog">
+    <button class="lite-close" aria-label="Close">✕</button>
+    <div class="lite-help">
+      <button class="lite-help-close" aria-label="Hide tip">✕</button>
+      JupyterLite opened. Tip: drag & drop your .ipynb, or
+      <b>File → Open from URL</b> (URL already copied to your clipboard).
+    </div>
+    <iframe class="lite-iframe" src="about:blank"></iframe>
+  </div>`;
+
+  const help = modal.querySelector('.lite-help');
+const helpClose = modal.querySelector('.lite-help-close');
+helpClose.addEventListener('click', () => { help.style.display = 'none'; });
+
+// optional auto-hide after 6s:
+ setTimeout(() => { help.style.display = 'none'; }, 6000);
+
+    
     document.body.appendChild(modal);
 
     modal.querySelector('.lite-close').addEventListener('click', () => modal.classList.remove('open'));
