@@ -383,14 +383,12 @@ doc.defaultView.thebe_config = {
     binderUrl: 'https://mybinder.org'
   },
   selector: '[data-executable]',
-  requestKernel: true,
+  requestKernel: true,      // <-- keep this true
   useBinderSplash: false,
   kernelName: 'python3',
-  kernelOptions: {
-    name: 'python3',
-    path: 'ipynb'     // <<< run in same folder as your notebooks
-  }
+  kernelOptions: { name: 'python3', path: 'ipynb' }
 };
+
 
     
 // Add a small status panel in the iframe
@@ -463,15 +461,7 @@ try {
   doc.body.dataset.thebeBootstrapped = '1';
   thebeLog('kernel requested… waiting for ready');
 
-// Explicitly request a kernel (some builds don’t auto-request even with requestKernel:true)
-try {
-  thebeLog('requesting kernel…');
-  await doc.defaultView.thebe.requestKernel();
-  thebeLog('kernel requested…');
-} catch (e) {
-  console.error('[thebe] requestKernel() failed', e);
-  thebeLog('failed to request kernel');
-}
+
 
   
 
