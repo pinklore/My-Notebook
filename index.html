@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="assets/style.css" />
   <script defer src="config.js"></script>
 
-  <!-- Local Thebe bundle -->
-  <script src="assets/thebe.js"></script>
+
+ 
 
   <!-- Lite modal styles (inline so you don't have to touch style.css) -->
   <style>
@@ -28,7 +28,9 @@
       const user = SITE.user;
       const repo = SITE.repo;
       const branch = SITE.branch || 'main';
-      const api = `https://api.github.com/repos/${user}/${repo}/contents/ipynb?ref=${branch}`;
+      //const api = `https://api.github.com/repos/${user}/${repo}/contents/ipynb?ref=${branch}`;
+      const api = `https://api.github.com/repos/${encodeURIComponent(user)}/${encodeURIComponent(repo)}/contents/ipynb?ref=${encodeURIComponent(branch)}`;
+
       const res = await fetch(api, { headers: { 'Accept': 'application/vnd.github+json' }});
       if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
       const data = await res.json();
@@ -193,6 +195,14 @@
     const wrap = document.getElementById(`badges-${base}`);
     if (!wrap) return;
 
+const cacheKey = `lastCommit:${SITE.user}/${SITE.repo}/${item.name}`;
+const cached = sessionStorage.getItem(cacheKey);
+if (cached) {
+  wrap.insertAdjacentHTML('beforeend', `<span class="badge">${cached}</span>`);
+  return;
+}
+
+    
     if (typeof item.size === 'number') {
       const kb = (item.size / 1024).toFixed(1) + ' KB';
       wrap.insertAdjacentHTML('beforeend', `<span class="badge">${kb}</span>`);
@@ -209,6 +219,8 @@
         if (d) {
           const s = new Date(d).toLocaleString('en-US', { timeZone: 'America/Chicago' });
           wrap.insertAdjacentHTML('beforeend', `<span class="badge">${s}</span>`);
+          sessionStorage.setItem(cacheKey, s);
+
           return;
         }
       }
@@ -367,30 +379,19 @@
       if (!metaResp.ok) throw new Error('Failed to fetch notebook metadata.');
       const meta = await metaResp.json();
       const sha = meta.sha;
+// decode base64 → Uint8Array → UTF‑8 string
+const bin = Uint8Array.from(atob(meta.content.replace(/\n/g, '')), c => c.charCodeAt(0));
+const originalContent = new TextDecoder('utf-8').decode(bin);
+let nb = JSON.parse(originalContent);
 
-      const originalContent = atob(meta.content.replace(/\n/g, ''));
-      let nb = JSON.parse(originalContent);
+// encode UTF‑8 safely back to base64
+const updatedBytes = new TextEncoder().encode(JSON.stringify(nb, null, 1));
+let updatedBase64 = '';
+for (let i = 0; i < updatedBytes.length; i += 0x8000) {
+  updatedBase64 += btoa(String.fromCharCode.apply(null, updatedBytes.subarray(i, i + 0x8000)));
+}
 
-      const iframe = document.getElementById(`frame-${baseName}`);
-      const doc = iframe.contentDocument || iframe.contentWindow.document;
-      if (!doc) throw new Error('Unable to access iframe document for saving.');
 
-      const codeBlocks = doc.querySelectorAll('div.input_area .CodeMirror, div.input_area pre');
-      let codeIndex = 0;
-      nb.cells = nb.cells.map((cell) => {
-        if (cell.cell_type === 'code') {
-          const codeEl = codeBlocks[codeIndex];
-          let code = '';
-          if (codeEl?.CodeMirror?.getValue) code = codeEl.CodeMirror.getValue();
-          else code = (codeEl?.innerText) || cell.source.join('');
-          codeIndex++;
-          cell.source = code.split(/\n/).map((line, i, arr) => i < arr.length - 1 ? line + '\n' : line);
-        }
-        return cell;
-      });
-
-      const updatedJSON = JSON.stringify(nb, null, 1);
-      const updatedBase64 = btoa(unescape(encodeURIComponent(updatedJSON)));
 
       const putResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
         method: 'PUT',
