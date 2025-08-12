@@ -1,8 +1,14 @@
+# minimal-but-complete for an interactive kernel
 ipykernel
+notebook
+jupyterlab
+jupyter_server>=2.0.0
+
+# light scientific stack
 numpy
 pandas
 matplotlib
 scikit-learn
 seaborn
 pillow
-jupyterlab
+
