@@ -366,18 +366,27 @@
     }
     console.log('[thebe] version', doc.defaultView.thebe?.version || '(unknown)');
 
-    // Configure Thebe
+    // --- IMPORTANT: clear old demo sessions so Thebe doesn't reuse them ---
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('thebe-binder'))
+        .forEach(k => localStorage.removeItem(k));
+    } catch {}
+
+    // Configure Thebe (point at YOUR repo, disable saved sessions while debugging)
     doc.defaultView.thebe_config = {
       binderOptions: {
-        repo: `${SITE.user}/${SITE.repo}`,
+        repo: `${SITE.user}/${SITE.repo}`,     // pinklore/My-Notebook
         ref: SITE.branch || 'main',
+        repoProvider: 'github',
         binderUrl: 'https://mybinder.org'
       },
       selector: '[data-executable]',
       requestKernel: true,
       useBinderSplash: false,
       kernelName: 'python3',
-      kernelOptions: { name: 'python3', path: 'ipynb' }
+      kernelOptions: { name: 'python3', path: 'ipynb' },
+      savedSessions: { enabled: false, maxAge: 0 }
     };
 
     // Status panel + log relay to parent
@@ -392,20 +401,15 @@
     function thebeLog(msg, level = 'log') {
       const el = doc.getElementById('thebe-status-panel');
       if (el) el.textContent = 'Thebe: ' + msg;
-      // also send to parent
       try {
-        doc.defaultView.parent.postMessage({
-          source: 'thebe-iframe-log',
-          level,
-          args: ['Thebe:', msg]
-        }, '*');
+        doc.defaultView.parent.postMessage({ source: 'thebe-iframe-log', level, args: ['Thebe:', msg] }, '*');
       } catch {}
     }
 
     let kernelReadyFlag = false;
     const waitForThebe = () => new Promise((resolve) => {
       const t = doc.defaultView.thebe;
-      if (!t || !t.on) return resolve(); // older builds may not have .on
+      if (!t || !t.on) return resolve();
       t.on('status', (evt) => {
         try {
           const s = typeof evt === 'string' ? evt : (evt?.status || '');
@@ -416,7 +420,6 @@
           }
         } catch {}
       });
-      // log errors if available
       try { t.on('error', (e) => thebeLog('error: ' + (e?.message || e), 'error')); } catch {}
       resolve();
     });
@@ -454,7 +457,7 @@
       // Poll for kernel readiness (up to 3 minutes)
       let ready = false;
       const t0 = Date.now();
-      const deadline = Date.now() + 180000; // 3 minutes
+      const deadline = Date.now() + 180000;
       while (Date.now() < deadline) {
         try {
           if (kernelReadyFlag) { ready = true; break; }
