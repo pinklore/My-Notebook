@@ -10,6 +10,17 @@
   <!-- Local Thebe bundle -->
   <script src="assets/thebe.js"></script>
 
+  <!-- Lite modal styles (inline so you don't have to touch style.css) -->
+  <style>
+    /* JupyterLite modal */
+    .lite-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:9999}
+    .lite-modal.open{display:flex}
+    .lite-dialog{width:min(1100px,95vw);height:min(700px,85vh);background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.25);position:relative}
+    .lite-iframe{width:100%;height:100%;border:0}
+    .lite-close{position:absolute;top:8px;right:8px;border:0;background:#fff;padding:.45rem .7rem;border-radius:999px;box-shadow:0 1px 3px rgba(0,0,0,.15);cursor:pointer}
+    .lite-help{position:absolute;left:12px;top:12px;background:#fff;padding:.35rem .6rem;border-radius:10px;font-size:.85rem;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  </style>
+
   <script>
   async function loadList() {
     const ul = document.querySelector('#notebook-list');
@@ -30,8 +41,10 @@
         const htmlUrl   = `notebooks/${base}.html`;
         const colabUrl  = `https://colab.research.google.com/github/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
         const ghUrl     = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
-        // NEW (JupyterLab 4+)
+        // JupyterLab 4+: use labpath
         const binderUrl = `https://mybinder.org/v2/gh/${user}/${repo}/${branch}?labpath=ipynb/${encodeURIComponent(it.name)}`;
+        // Raw URL for JupyterLite open-from-URL
+        const rawUrl    = `https://raw.githubusercontent.com/${user}/${repo}/${branch}/ipynb/${encodeURIComponent(it.name)}`;
 
         // Card
         const card = document.createElement('li');
@@ -89,6 +102,16 @@
         expandBtn.dataset.target = base;
         expandBtn.textContent = 'Expand Preview';
         actionsEl.appendChild(expandBtn);
+
+        // Binder-free (JupyterLite) button
+        const liteBtn = document.createElement('button');
+        liteBtn.className = 'btn';
+        liteBtn.textContent = 'Run in Browser (Lite)';
+        liteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openLiteWith(rawUrl);
+        });
+        actionsEl.appendChild(liteBtn);
 
         // Preview wrapper (iframe + TOC)
         const preview = document.createElement('div');
@@ -196,138 +219,135 @@
   }
 
   // Build TOC + copy buttons inside iframe; return whether code cells exist
-// Build TOC and copy buttons inside iframe; return whether code cells exist
-function handleIframe(iframe, tocBox) {
-  const doc = iframe.contentDocument || iframe.contentWindow.document;
-  if (!doc) { tocBox.textContent = 'Unable to read preview.'; return false; }
+  function handleIframe(iframe, tocBox) {
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    if (!doc) { tocBox.textContent = 'Unable to read preview.'; return false; }
 
-  // Only target code *inputs* (avoid outputs and generic <pre>)
-  const inputSelectors = '.input_area pre, .jp-Cell .jp-InputArea-editor';
-  const hasCode = !!doc.querySelector(inputSelectors);
+    // Only target code *inputs* (avoid outputs and generic <pre>)
+    const inputSelectors = '.input_area pre, .jp-Cell .jp-InputArea-editor';
+    const hasCode = !!doc.querySelector(inputSelectors);
 
-  // Mark code inputs for Thebe (idempotent)
-  try {
-    const codeInputs = doc.querySelectorAll(inputSelectors);
-    codeInputs.forEach((el) => {
-      const host = el.closest('pre') || el;
-      if (!host.dataset.thebeAdded) {
-        host.dataset.thebeAdded = '1';
-        host.setAttribute('data-executable', 'true');
-        host.setAttribute('data-language', 'python');
-      }
+    // Mark code inputs for Thebe (idempotent)
+    try {
+      const codeInputs = doc.querySelectorAll(inputSelectors);
+      codeInputs.forEach((el) => {
+        const host = el.closest('pre') || el;
+        if (!host.dataset.thebeAdded) {
+          host.dataset.thebeAdded = '1';
+          host.setAttribute('data-executable', 'true');
+          host.setAttribute('data-language', 'python');
+        }
+      });
+    } catch {}
+
+    // TOC
+    let headings = doc.querySelectorAll(
+      '.text_cell_render h1, .text_cell_render h2, .text_cell_render h3, h1, h2, h3'
+    );
+    headings = Array.from(headings).filter(h => h.textContent.trim().length > 0);
+    if (!headings.length) {
+      tocBox.textContent = 'No headings detected.';
+    } else {
+      const list = document.createElement('div');
+      headings.forEach((h, i) => {
+        if (!h.id) h.id = 'nb-h-' + i;
+        const a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.textContent = h.textContent.trim();
+        const lvl = h.tagName.toLowerCase();
+        a.style.marginLeft = (lvl === 'h2' ? '12px' : lvl === 'h3' ? '24px' : '0');
+        a.addEventListener('click', ev => { ev.preventDefault(); h.scrollIntoView({behavior:'smooth', block:'start'}); });
+        list.appendChild(a);
+      });
+      tocBox.innerHTML = '';
+      tocBox.appendChild(list);
+    }
+
+    // Copy buttons (overlay; do NOT wrap the <pre>, to avoid breaking Thebe)
+    const areas = doc.querySelectorAll('div.input_area');
+    areas.forEach(area => {
+      if (area.querySelector('.nb-copy-btn')) return;
+      area.style.position = area.style.position || 'relative';
+      const btn = doc.createElement('button');
+      btn.className = 'nb-copy-btn';
+      btn.textContent = 'Copy';
+      btn.style.cssText = 'position:absolute;right:8px;top:8px;font-size:12px;border:1px solid #ccc;background:#f6f6f6;padding:2px 6px;border-radius:4px;cursor:pointer;';
+      btn.addEventListener('click', async () => {
+        const pre = area.querySelector('pre');
+        const text = pre ? pre.innerText : '';
+        try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied!'; }
+        catch { btn.textContent = 'Failed'; }
+        setTimeout(() => (btn.textContent = 'Copy'), 1200);
+      });
+      area.appendChild(btn);
     });
-  } catch {}
 
-  // TOC (unchanged)
-  let headings = doc.querySelectorAll(
-    '.text_cell_render h1, .text_cell_render h2, .text_cell_render h3, h1, h2, h3'
-  );
-  headings = Array.from(headings).filter(h => h.textContent.trim().length > 0);
-  if (!headings.length) {
-    tocBox.textContent = 'No headings detected.';
-  } else {
-    const list = document.createElement('div');
-    headings.forEach((h, i) => {
-      if (!h.id) h.id = 'nb-h-' + i;
-      const a = document.createElement('a');
-      a.href = '#' + h.id;
-      a.textContent = h.textContent.trim();
-      const lvl = h.tagName.toLowerCase();
-      a.style.marginLeft = (lvl === 'h2' ? '12px' : lvl === 'h3' ? '24px' : '0');
-      a.addEventListener('click', ev => { ev.preventDefault(); h.scrollIntoView({behavior:'smooth', block:'start'}); });
-      list.appendChild(a);
-    });
-    tocBox.innerHTML = '';
-    tocBox.appendChild(list);
+    return hasCode;
   }
-
-  // Copy buttons (overlay; do NOT wrap the <pre>, to avoid breaking Thebe)
-  const areas = doc.querySelectorAll('div.input_area');
-  areas.forEach(area => {
-    if (area.querySelector('.nb-copy-btn')) return;
-    area.style.position = area.style.position || 'relative';
-    const btn = doc.createElement('button');
-    btn.className = 'nb-copy-btn';
-    btn.textContent = 'Copy';
-    btn.style.cssText = 'position:absolute;right:8px;top:8px;font-size:12px;border:1px solid #ccc;background:#f6f6f6;padding:2px 6px;border-radius:4px;cursor:pointer;';
-    btn.addEventListener('click', async () => {
-      const pre = area.querySelector('pre');
-      const text = pre ? pre.innerText : '';
-      try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied!'; }
-      catch { btn.textContent = 'Failed'; }
-      setTimeout(() => (btn.textContent = 'Copy'), 1200);
-    });
-    area.appendChild(btn);
-  });
-
-  return hasCode;
-}
-
 
   document.addEventListener('DOMContentLoaded', loadList);
 
   // Make Live: inject Thebe into the iframe and bootstrap there
+  async function initLive(baseName) {
+    const iframe = document.getElementById('frame-' + baseName);
+    const doc = iframe?.contentDocument || iframe?.contentWindow?.document;
+    if (!doc) { alert('Preview not ready.'); return; }
 
-async function initLive(baseName) {
-  const iframe = document.getElementById('frame-' + baseName);
-  const doc = iframe?.contentDocument || iframe?.contentWindow?.document;
-  if (!doc) { alert('Preview not ready.'); return; }
+    // If we already went live once for this iframe, do nothing (prevents duplicates)
+    if (doc.body.dataset.thebeBootstrapped === '1') {
+      console.log('[thebe] already bootstrapped for', baseName);
+      return;
+    }
 
-  // If we already went live once for this iframe, do nothing (prevents duplicates)
-  if (doc.body.dataset.thebeBootstrapped === '1') {
-    console.log('[thebe] already bootstrapped for', baseName);
-    return;
+    // Only count code *inputs*
+    const inputSelectors = '.input_area pre, .jp-Cell .jp-InputArea-editor';
+    const candidates = doc.querySelectorAll(inputSelectors);
+    if (!candidates.length) { alert('No code cells found in this notebook.'); return; }
+
+    // Ensure inputs are marked
+    candidates.forEach(el => {
+      const host = el.closest('pre') || el;
+      if (!host.dataset.executable) host.setAttribute('data-executable', 'true');
+      if (!host.dataset.language)   host.setAttribute('data-language', 'python');
+    });
+
+    // Load thebe.js into the iframe (absolute URL so it doesn't 404 from /notebooks/)
+    const basePath = location.pathname.endsWith('/')
+      ? location.pathname
+      : location.pathname.replace(/[^/]+$/, '/');
+    const thebeSrc = `${location.origin}${basePath}assets/thebe.js`;
+
+    await new Promise((resolve, reject) => {
+      if (doc.defaultView.thebe) return resolve();
+      const s = doc.createElement('script');
+      s.src = thebeSrc;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('Failed to load thebe.js inside iframe'));
+      doc.head.appendChild(s);
+    });
+
+    // Configure Thebe; disable splash (prevents extra tab)
+    doc.defaultView.thebe_config = {
+      binderOptions: {
+        repo: `${SITE.user}/${SITE.repo}`,
+        ref: SITE.branch || 'main',
+        binderUrl: 'https://mybinder.org'
+      },
+      selector: '[data-executable]',
+      requestKernel: true,
+      useBinderSplash: false,   // no extra tab
+      kernelName: 'python3'
+    };
+
+    try {
+      await doc.defaultView.thebe.bootstrap();
+      doc.body.dataset.thebeBootstrapped = '1';
+      console.log('[thebe] bootstrapped for', baseName);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to start Thebe (Binder). Check network/Binder status.');
+    }
   }
-
-  // Only count code *inputs*
-  const inputSelectors = '.input_area pre, .jp-Cell .jp-InputArea-editor';
-  const candidates = doc.querySelectorAll(inputSelectors);
-  if (!candidates.length) { alert('No code cells found in this notebook.'); return; }
-
-  // Ensure inputs are marked
-  candidates.forEach(el => {
-    const host = el.closest('pre') || el;
-    if (!host.dataset.executable) host.setAttribute('data-executable', 'true');
-    if (!host.dataset.language)   host.setAttribute('data-language', 'python');
-  });
-
-  // Load thebe.js into the iframe (absolute URL so it doesn't 404 from /notebooks/)
-  const basePath = location.pathname.endsWith('/')
-    ? location.pathname
-    : location.pathname.replace(/[^/]+$/, '/');
-  const thebeSrc = `${location.origin}${basePath}assets/thebe.js`;
-
-  await new Promise((resolve, reject) => {
-    if (doc.defaultView.thebe) return resolve();
-    const s = doc.createElement('script');
-    s.src = thebeSrc;
-    s.onload = resolve;
-    s.onerror = () => reject(new Error('Failed to load thebe.js inside iframe'));
-    doc.head.appendChild(s);
-  });
-
-  // Configure Thebe; disable splash (prevents extra tab)
-  doc.defaultView.thebe_config = {
-    binderOptions: {
-      repo: `${SITE.user}/${SITE.repo}`,
-      ref: SITE.branch || 'main',
-      binderUrl: 'https://mybinder.org'
-    },
-    selector: '[data-executable]',
-    requestKernel: true,
-    useBinderSplash: false,   // <- stop opening a new tab
-    kernelName: 'python3'
-  };
-
-  try {
-    await doc.defaultView.thebe.bootstrap();
-    doc.body.dataset.thebeBootstrapped = '1';
-    console.log('[thebe] bootstrapped for', baseName);
-  } catch (e) {
-    console.error(e);
-    alert('Failed to start Thebe (Binder). Check network/Binder status.');
-  }
-}
 
   // Save back to GitHub
   async function saveNotebookToGitHub(baseName) {
@@ -390,6 +410,44 @@ async function initLive(baseName) {
       alert(err.message || 'An error occurred while saving the notebook.');
     }
   }
+
+  // ----- JupyterLite modal helpers -----
+  function ensureLiteModal() {
+    let modal = document.getElementById('lite-modal');
+    if (modal) return modal;
+
+    modal = document.createElement('div');
+    modal.id = 'lite-modal';
+    modal.className = 'lite-modal';
+    modal.innerHTML = `
+      <div class="lite-dialog">
+        <button class="lite-close" aria-label="Close">✕</button>
+        <div class="lite-help">
+          JupyterLite opened. Tip: drag & drop your .ipynb, or
+          <b>File → Open from URL</b> (URL already copied to your clipboard).
+        </div>
+        <iframe class="lite-iframe" src="about:blank"></iframe>
+      </div>`;
+    document.body.appendChild(modal);
+
+    modal.querySelector('.lite-close').addEventListener('click', () => modal.classList.remove('open'));
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('open'); });
+    return modal;
+  }
+
+  function openLiteWith(rawUrl) {
+    const modal = ensureLiteModal();
+    const iframe = modal.querySelector('iframe');
+    // Open official JupyterLite Lab (browser-only Python)
+    iframe.src = 'https://jupyterlite.github.io/demo/lab/index.html';
+    modal.classList.add('open');
+
+    // Copy the notebook URL so user can paste in “Open from URL”
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(rawUrl).catch(() => {});
+    }
+  }
+  // ----- end JupyterLite helpers -----
   </script>
 </head>
 <body>
