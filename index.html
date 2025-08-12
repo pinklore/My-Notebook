@@ -376,17 +376,21 @@ console.log('[thebe] version', doc.defaultView.thebe?.version || '(unknown)');
 
 
     // Configure Thebe; disable splash (prevents extra tab)
-    doc.defaultView.thebe_config = {
-      binderOptions: {
-        repo: `${SITE.user}/${SITE.repo}`,
-        ref: SITE.branch || 'main',
-        binderUrl: 'https://mybinder.org'
-      },
-      selector: '[data-executable]',
-      requestKernel: true,
-      useBinderSplash: false,   // no extra tab
-      kernelName: 'python3'
-    };
+doc.defaultView.thebe_config = {
+  binderOptions: {
+    repo: `${SITE.user}/${SITE.repo}`,
+    ref: SITE.branch || 'main',
+    binderUrl: 'https://mybinder.org'
+  },
+  selector: '[data-executable]',
+  requestKernel: true,
+  useBinderSplash: false,
+  kernelName: 'python3',
+  kernelOptions: {
+    name: 'python3',
+    path: 'ipynb'     // <<< run in same folder as your notebooks
+  }
+};
 
     
 // Add a small status panel in the iframe
@@ -458,6 +462,18 @@ try {
   await doc.defaultView.thebe.bootstrap();
   doc.body.dataset.thebeBootstrapped = '1';
   thebeLog('kernel requested… waiting for ready');
+
+// Explicitly request a kernel (some builds don’t auto-request even with requestKernel:true)
+try {
+  thebeLog('requesting kernel…');
+  await doc.defaultView.thebe.requestKernel();
+  thebeLog('kernel requested…');
+} catch (e) {
+  console.error('[thebe] requestKernel() failed', e);
+  thebeLog('failed to request kernel');
+}
+
+  
 
   // Poll for kernel readiness (up to 90s)
 let ready = false;
