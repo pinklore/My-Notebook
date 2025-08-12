@@ -55,7 +55,8 @@
         const colabUrl  = `https://colab.research.google.com/github/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
         const ghUrl     = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
         // JupyterLab 4+: use labpath
-        const binderUrl = `https://mybinder.org/v2/gh/${user}/${repo}/${branch}?labpath=ipynb/${encodeURIComponent(it.name)}`;
+const binderUrl = `https://mybinder.org/v2/gh/${encodeURIComponent(user)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}?labpath=ipynb/${encodeURIComponent(it.name)}`;
+
         // Raw URL for JupyterLite open-from-URL
         const rawUrl    = `https://raw.githubusercontent.com/${user}/${repo}/${branch}/ipynb/${encodeURIComponent(it.name)}`;
 
@@ -249,22 +250,20 @@ if (cached) {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
     if (!doc) { tocBox.textContent = 'Unable to read preview.'; return false; }
 
-    // Only target code *inputs* (avoid outputs and generic <pre>)
-    const inputSelectors = '.input_area pre, .jp-Cell .jp-InputArea-editor';
-    const hasCode = !!doc.querySelector(inputSelectors);
+// Prefer marking the whole input area (more robust for Thebe)
+const inputSelectors = 'div.input_area, .jp-Cell .jp-InputArea';
+const hasCode = !!doc.querySelector(inputSelectors);
 
-    // Mark code inputs for Thebe (idempotent)
-    try {
-      const codeInputs = doc.querySelectorAll(inputSelectors);
-      codeInputs.forEach((el) => {
-        const host = el.closest('pre') || el;
-        if (!host.dataset.thebeAdded) {
-          host.dataset.thebeAdded = '1';
-          host.setAttribute('data-executable', 'true');
-          host.setAttribute('data-language', 'python');
-        }
-      });
-    } catch {}
+try {
+  const areas = doc.querySelectorAll(inputSelectors);
+  areas.forEach((area) => {
+    if (area.dataset.thebeAdded) return;
+    area.dataset.thebeAdded = '1';
+    area.setAttribute('data-executable', 'true');
+    area.setAttribute('data-language', 'python');
+  });
+} catch {}
+
 
     // TOC
 let headings = doc.querySelectorAll(
@@ -293,8 +292,9 @@ let headings = doc.querySelectorAll(
     }
 
     // Copy buttons (overlay; do NOT wrap the <pre>, to avoid breaking Thebe)
-    const areas = doc.querySelectorAll('div.input_area');
-    areas.forEach(area => {
+ const areasForCopy = doc.querySelectorAll('div.input_area');
+areasForCopy.forEach(area => {
+
       if (area.querySelector('.nb-copy-btn')) return;
       area.style.position = area.style.position || 'relative';
       const btn = doc.createElement('button');
@@ -328,17 +328,17 @@ let headings = doc.querySelectorAll(
       return;
     }
 
-    // Only count code *inputs*
-    const inputSelectors = '.input_area pre, .jp-Cell .jp-InputArea-editor';
-    const candidates = doc.querySelectorAll(inputSelectors);
-    if (!candidates.length) { alert('No code cells found in this notebook.'); return; }
+// Only count code *input areas* (more robust across templates)
+const inputSelectors = 'div.input_area, .jp-Cell .jp-InputArea';
+const candidates = doc.querySelectorAll(inputSelectors);
+if (!candidates.length) { alert('No code cells found in this notebook.'); return; }
 
-    // Ensure inputs are marked
-    candidates.forEach(el => {
-      const host = el.closest('pre') || el;
-      if (!host.dataset.executable) host.setAttribute('data-executable', 'true');
-      if (!host.dataset.language)   host.setAttribute('data-language', 'python');
-    });
+// Ensure inputs are marked
+candidates.forEach(area => {
+  if (!area.dataset.executable) area.setAttribute('data-executable', 'true');
+  if (!area.dataset.language)   area.setAttribute('data-language', 'python');
+});
+
 
     // Load thebe.js into the iframe (absolute URL so it doesn't 404 from /notebooks/)
     const basePath = location.pathname.endsWith('/')
@@ -368,14 +368,81 @@ let headings = doc.querySelectorAll(
       kernelName: 'python3'
     };
 
+    
+// Add a small status panel in the iframe
+(function addThebeStatusPanel() {
+  const panel = doc.createElement('div');
+  panel.id = 'thebe-status-panel';
+  panel.style.cssText = 'position:fixed;bottom:8px;left:8px;background:#111;color:#fff;font:12px/1.3 system-ui;padding:8px 10px;border-radius:8px;opacity:.85;z-index:99999;max-width:60ch;pointer-events:none';
+  panel.textContent = 'Thebe: initializing…';
+  doc.body.appendChild(panel);
+})();
+
+// Helper to update panel text
+function thebeLog(msg) {
+  const el = doc.getElementById('thebe-status-panel');
+  if (el) el.textContent = 'Thebe: ' + msg;
+}
+
+// Listen for status events if available (some builds expose t.on('status', ...))
+const waitForThebe = () => new Promise((resolve) => {
+  const t = doc.defaultView.thebe;
+  if (!t || !t.on) return resolve(); // older builds may not have .on
+  t.on('status', (evt) => {
     try {
-      await doc.defaultView.thebe.bootstrap();
-      doc.body.dataset.thebeBootstrapped = '1';
-      console.log('[thebe] bootstrapped for', baseName);
-    } catch (e) {
-      console.error(e);
-      alert('Failed to start Thebe (Binder). Check network/Binder status.');
-    }
+      const s = typeof evt === 'string' ? evt : (evt?.status || '');
+      if (s) thebeLog(s);
+    } catch {}
+  });
+  resolve();
+});
+
+try {
+  await waitForThebe();
+  const start = Date.now();
+  thebeLog('starting kernel (via Binder)…');
+
+  await doc.defaultView.thebe.bootstrap();
+  doc.body.dataset.thebeBootstrapped = '1';
+  thebeLog('kernel requested… waiting for ready');
+
+  // Poll for kernel readiness (up to 90s)
+  let ready = false;
+  const deadline = Date.now() + 90000;
+  while (Date.now() < deadline) {
+    try {
+      const t = doc.defaultView.thebe;
+      if (t?.kernels && t.kernels.size > 0) {
+        for (const k of t.kernels.values()) {
+          if (k?.ready || k?.status === 'connected' || k?.status === 'idle') { ready = true; break; }
+        }
+      }
+    } catch {}
+    if (ready) break;
+    await new Promise(r => setTimeout(r, 1000));
+  }
+
+  if (!ready) {
+    thebeLog('timeout waiting for kernel (opening Binder Lab)…');
+    // Direct Binder fallback for this notebook path
+    const owner = SITE.user, repo = SITE.repo, ref = SITE.branch || 'main';
+    const nbPath = `ipynb/${baseName}.ipynb`;
+    const binderLab = `https://mybinder.org/v2/gh/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(ref)}?labpath=${encodeURIComponent(nbPath)}`;
+    setTimeout(() => { doc.defaultView.open(binderLab, '_blank'); }, 500);
+    alert('Binder is slow or blocked. Opened full Binder Lab in a new tab.');
+  } else {
+    thebeLog(`kernel ready! (in ${((Date.now() - start)/1000).toFixed(1)}s) You can Run/Restart now.`);
+    console.log('[thebe] kernel ready for', baseName, 'in', ((Date.now()-start)/1000).toFixed(1), 's');
+  }
+} catch (e) {
+  console.error(e);
+  thebeLog('bootstrap failed.');
+  alert('Failed to start Thebe (Binder). Check network/Binder status.');
+}
+
+
+
+    
   }
 
   // Save back to GitHub
@@ -419,10 +486,16 @@ for (let i = 0; i < updatedBytes.length; i += 0x8000) {
         },
         body: JSON.stringify({ message: `Update ${filename} via interactive site`, content: updatedBase64, sha, branch })
       });
-      if (!putResp.ok) throw new Error('Failed to commit notebook.');
+      
+if (!putResp.ok) throw new Error('Failed to commit notebook.');
 
-      alert(`Notebook ${filename} saved successfully to GitHub.`);
-      iframe.src = iframe.src;
+alert(`Notebook ${filename} saved successfully to GitHub.`);
+// Refresh the preview iframe for this notebook
+const iframe = document.getElementById(`frame-${baseName}`);
+if (iframe) iframe.src = iframe.src;
+
+
+      
     } catch (err) {
       console.error(err);
       alert(err.message || 'An error occurred while saving the notebook.');
