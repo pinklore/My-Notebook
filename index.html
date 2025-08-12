@@ -25,6 +25,11 @@
   async function loadList() {
     const ul = document.querySelector('#notebook-list');
     try {
+    if (!window.SITE || !SITE.user || !SITE.repo) {
+      ul.innerHTML = '<li>config.js missing or incomplete (need SITE.user and SITE.repo).</li>';
+      return;
+    }
+
       const user = SITE.user;
       const repo = SITE.repo;
       const branch = SITE.branch || 'main';
@@ -139,16 +144,19 @@
         });
 
         // Expand height
-        const iframe = preview.querySelector(`#frame-${base}`);
-        expandBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const btn = e.currentTarget;
-          const expanded = btn.dataset.expanded === '1';
-          iframe.style.height = expanded ? '500px' : '1000px';
-          preview.querySelector('.toc').style.height = expanded ? '500px' : '1000px';
-          btn.textContent = expanded ? 'Expand Preview' : 'Collapse Preview';
-          btn.dataset.expanded = expanded ? '0' : '1';
-        });
+     // Expand height (safer with null check)
+const iframe = preview.querySelector(`#frame-${base}`);
+const tocEl = preview.querySelector('.toc');
+expandBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  const expanded = btn.dataset.expanded === '1';
+  iframe.style.height = expanded ? '500px' : '1000px';
+  if (tocEl) tocEl.style.height = expanded ? '500px' : '1000px';
+  btn.textContent = expanded ? 'Expand Preview' : 'Collapse Preview';
+  btn.dataset.expanded = expanded ? '0' : '1';
+});
+
 
         // Badges
         await addBadges(it, base);
@@ -253,9 +261,12 @@ if (cached) {
     } catch {}
 
     // TOC
-    let headings = doc.querySelectorAll(
-      '.text_cell_render h1, .text_cell_render h2, .text_cell_render h3, h1, h2, h3'
-    );
+let headings = doc.querySelectorAll(
+  '.text_cell_render h1, .text_cell_render h2, .text_cell_render h3, ' +
+  '.jp-RenderedHTMLCommon h1, .jp-RenderedHTMLCommon h2, .jp-RenderedHTMLCommon h3, ' +
+  'h1, h2, h3'
+);
+
     headings = Array.from(headings).filter(h => h.textContent.trim().length > 0);
     if (!headings.length) {
       tocBox.textContent = 'No headings detected.';
