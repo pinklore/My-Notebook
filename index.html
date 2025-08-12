@@ -281,7 +281,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', loadList);
-/*
+
   // Make Live: inject Thebe (CDN) into the iframe and bootstrap there
   async function initLive(baseName) {
     const iframe = document.getElementById('frame-' + baseName);
@@ -296,7 +296,7 @@
       if (!area.dataset.executable) area.setAttribute('data-executable', 'true');
       if (!area.dataset.language)   area.setAttribute('data-language', 'python');
     });
-    */
+    
 
     // Always load Thebe from CDN (no local 404s)
     const thebeCDN = 'https://cdn.jsdelivr.net/npm/thebe@0.9.2/lib/index.js';
