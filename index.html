@@ -30,7 +30,8 @@
         const htmlUrl   = `notebooks/${base}.html`;
         const colabUrl  = `https://colab.research.google.com/github/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
         const ghUrl     = `https://github.com/${user}/${repo}/blob/${branch}/ipynb/${encodeURIComponent(it.name)}`;
-        const binderUrl = `https://mybinder.org/v2/gh/${user}/${repo}/${branch}?urlpath=lab/tree/ipynb/${encodeURIComponent(it.name)}`;
+        // NEW (JupyterLab 4+)
+        const binderUrl = `https://mybinder.org/v2/gh/${user}/${repo}/${branch}?labpath=ipynb/${encodeURIComponent(it.name)}`;
 
         // Card
         const card = document.createElement('li');
