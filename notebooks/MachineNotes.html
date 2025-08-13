@@ -7596,6 +7596,409 @@ you can code everything by hand, where you figure out the logic for how a</p>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h1 id="Read-in-Methods">Read in Methods<a class="anchor-link" href="#Read-in-Methods">¶</a></h1>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="o">%%</span><span class="n">capture</span>
+<span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="n">import_ipynb</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">import_ipynb</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">google.colab</span><span class="w"> </span><span class="kn">import</span> <span class="n">drive</span>
+<span class="n">drive</span><span class="o">.</span><span class="n">flush_and_unmount</span><span class="p">()</span>
+<span class="n">drive</span><span class="o">.</span><span class="n">mount</span><span class="p">(</span><span class="s2">"mnt"</span><span class="p">)</span>
+<span class="n">m</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s2">"mnt/MyDrive/Colab Notebooks/Copy of methods"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h1 id="Data-Example">Data Example<a class="anchor-link" href="#Data-Example">¶</a></h1><p>Using micro ct data from OSD-557 as an example:</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="n">data</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
+<span class="n">data</span><span class="p">[</span><span class="s1">'microCT'</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">read_phenotype_data</span><span class="p">(</span><span class="s1">'557'</span><span class="p">,</span> <span class="s1">'LSDS-1_microCT_MicroCT_Transformed_Reusable_Results'</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'num records: '</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">'microCT'</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'treatments: '</span><span class="p">,</span> <span class="nb">set</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">'microCT'</span><span class="p">][</span><span class="s1">'Treatment'</span><span class="p">]))</span>
+<span class="n">data</span><span class="p">[</span><span class="s1">'microCT'</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>num records:  12
+treatments:  {'Flight', 'Ground Control', 'Vivarium'}
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
+<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[4]:</div>
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
+<div class="colab-df-container" id="df-10d8fbeb-5acd-444d-8d77-91af3fc07087">
+<div>
+<style scoped="">
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+<thead>
+<tr style="text-align: right;">
+<th></th>
+<th>Source Name</th>
+<th>Sample Name</th>
+<th>Treatment</th>
+<th>Ant-Post</th>
+<th>Sup-Inf</th>
+<th>Retina</th>
+<th>Pigment Layer</th>
+<th>Choroid</th>
+<th>Sclera</th>
+<th>Ant-Post.1</th>
+<th>Right-left</th>
+<th>Retina.1</th>
+<th>Pigment Layer.1</th>
+<th>Choroid.1</th>
+<th>Sclera.1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th>0</th>
+<td>F10</td>
+<td>F10_Mouse_Eye</td>
+<td>Flight</td>
+<td>1.765000</td>
+<td>2.044000</td>
+<td>0.077</td>
+<td>0.038</td>
+<td>0.041000</td>
+<td>0.059000</td>
+<td>1.748000</td>
+<td>1.997000</td>
+<td>0.144000</td>
+<td>0.051000</td>
+<td>0.041000</td>
+<td>0.073000</td>
+</tr>
+<tr>
+<th>1</th>
+<td>F12</td>
+<td>F12_Mouse_Eye</td>
+<td>Flight</td>
+<td>1.724000</td>
+<td>2.028000</td>
+<td>0.091</td>
+<td>0.048</td>
+<td>0.036000</td>
+<td>0.054000</td>
+<td>1.720000</td>
+<td>1.980000</td>
+<td>0.087000</td>
+<td>0.041000</td>
+<td>0.039000</td>
+<td>0.057000</td>
+</tr>
+<tr>
+<th>2</th>
+<td>F13</td>
+<td>F13_Mouse_Eye</td>
+<td>Flight</td>
+<td>1.754333</td>
+<td>2.043667</td>
+<td>0.089</td>
+<td>0.044</td>
+<td>0.036333</td>
+<td>0.054333</td>
+<td>1.750333</td>
+<td>1.969667</td>
+<td>0.113667</td>
+<td>0.053667</td>
+<td>0.038333</td>
+<td>0.065333</td>
+</tr>
+<tr>
+<th>3</th>
+<td>F14</td>
+<td>F14_Mouse_Eye</td>
+<td>Flight</td>
+<td>1.774000</td>
+<td>2.059000</td>
+<td>0.099</td>
+<td>0.046</td>
+<td>0.032000</td>
+<td>0.050000</td>
+<td>1.783000</td>
+<td>1.932000</td>
+<td>0.110000</td>
+<td>0.069000</td>
+<td>0.035000</td>
+<td>0.066000</td>
+</tr>
+<tr>
+<th>4</th>
+<td>V10</td>
+<td>V10_Mouse_Eye</td>
+<td>Vivarium</td>
+<td>1.771000</td>
+<td>2.119000</td>
+<td>0.145</td>
+<td>0.076</td>
+<td>0.083000</td>
+<td>0.109000</td>
+<td>1.755000</td>
+<td>2.089000</td>
+<td>0.118000</td>
+<td>0.055000</td>
+<td>0.061000</td>
+<td>0.067000</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="colab-df-buttons">
+<div class="colab-df-container">
+<button class="colab-df-convert" onclick="convertToInteractive('df-10d8fbeb-5acd-444d-8d77-91af3fc07087')" style="display:none;" title="Convert this dataframe to an interactive table.">
+<svg height="24px" viewbox="0 -960 960 960" xmlns="http://www.w3.org/2000/svg">
+<path d="M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z"></path>
+</svg>
+</button>
+<style>
+    .colab-df-container {
+      display:flex;
+      gap: 12px;
+    }
+
+    .colab-df-convert {
+      background-color: #E8F0FE;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      fill: #1967D2;
+      height: 32px;
+      padding: 0 0 0 0;
+      width: 32px;
+    }
+
+    .colab-df-convert:hover {
+      background-color: #E2EBFA;
+      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: #174EA6;
+    }
+
+    .colab-df-buttons div {
+      margin-bottom: 4px;
+    }
+
+    [theme=dark] .colab-df-convert {
+      background-color: #3B4455;
+      fill: #D2E3FC;
+    }
+
+    [theme=dark] .colab-df-convert:hover {
+      background-color: #434B5C;
+      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+      fill: #FFFFFF;
+    }
+  </style>
+<script>
+      const buttonEl =
+        document.querySelector('#df-10d8fbeb-5acd-444d-8d77-91af3fc07087 button.colab-df-convert');
+      buttonEl.style.display =
+        google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+      async function convertToInteractive(key) {
+        const element = document.querySelector('#df-10d8fbeb-5acd-444d-8d77-91af3fc07087');
+        const dataTable =
+          await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                    [key], {});
+        if (!dataTable) return;
+
+        const docLinkHtml = 'Like what you see? Visit the ' +
+          '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
+          + ' to learn more about interactive tables.';
+        element.innerHTML = '';
+        dataTable['output_type'] = 'display_data';
+        await google.colab.output.renderOutput(dataTable, element);
+        const docLink = document.createElement('div');
+        docLink.innerHTML = docLinkHtml;
+        element.appendChild(docLink);
+      }
+    </script>
+</div>
+<div id="df-ae29622f-6d51-4aee-baad-b97b27227edd">
+<button class="colab-df-quickchart" onclick="quickchart('df-ae29622f-6d51-4aee-baad-b97b27227edd')" style="display:none;" title="Suggest charts">
+<svg height="24px" viewbox="0 0 24 24" width="24px" xmlns="http://www.w3.org/2000/svg">
+<g>
+<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"></path>
+</g>
+</svg>
+</button>
+<style>
+  .colab-df-quickchart {
+      --bg-color: #E8F0FE;
+      --fill-color: #1967D2;
+      --hover-bg-color: #E2EBFA;
+      --hover-fill-color: #174EA6;
+      --disabled-fill-color: #AAA;
+      --disabled-bg-color: #DDD;
+  }
+
+  [theme=dark] .colab-df-quickchart {
+      --bg-color: #3B4455;
+      --fill-color: #D2E3FC;
+      --hover-bg-color: #434B5C;
+      --hover-fill-color: #FFFFFF;
+      --disabled-bg-color: #3B4455;
+      --disabled-fill-color: #666;
+  }
+
+  .colab-df-quickchart {
+    background-color: var(--bg-color);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    fill: var(--fill-color);
+    height: 32px;
+    padding: 0;
+    width: 32px;
+  }
+
+  .colab-df-quickchart:hover {
+    background-color: var(--hover-bg-color);
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+    fill: var(--button-hover-fill-color);
+  }
+
+  .colab-df-quickchart-complete:disabled,
+  .colab-df-quickchart-complete:disabled:hover {
+    background-color: var(--disabled-bg-color);
+    fill: var(--disabled-fill-color);
+    box-shadow: none;
+  }
+
+  .colab-df-spinner {
+    border: 2px solid var(--fill-color);
+    border-color: transparent;
+    border-bottom-color: var(--fill-color);
+    animation:
+      spin 1s steps(1) infinite;
+  }
+
+  @keyframes spin {
+    0% {
+      border-color: transparent;
+      border-bottom-color: var(--fill-color);
+      border-left-color: var(--fill-color);
+    }
+    20% {
+      border-color: transparent;
+      border-left-color: var(--fill-color);
+      border-top-color: var(--fill-color);
+    }
+    30% {
+      border-color: transparent;
+      border-left-color: var(--fill-color);
+      border-top-color: var(--fill-color);
+      border-right-color: var(--fill-color);
+    }
+    40% {
+      border-color: transparent;
+      border-right-color: var(--fill-color);
+      border-top-color: var(--fill-color);
+    }
+    60% {
+      border-color: transparent;
+      border-right-color: var(--fill-color);
+    }
+    80% {
+      border-color: transparent;
+      border-right-color: var(--fill-color);
+      border-bottom-color: var(--fill-color);
+    }
+    90% {
+      border-color: transparent;
+      border-bottom-color: var(--fill-color);
+    }
+  }
+</style>
+<script>
+        async function quickchart(key) {
+          const quickchartButtonEl =
+            document.querySelector('#' + key + ' button');
+          quickchartButtonEl.disabled = true;  // To prevent multiple clicks.
+          quickchartButtonEl.classList.add('colab-df-spinner');
+          try {
+            const charts = await google.colab.kernel.invokeFunction(
+                'suggestCharts', [key], {});
+          } catch (error) {
+            console.error('Error during call to suggestCharts:', error);
+          }
+          quickchartButtonEl.classList.remove('colab-df-spinner');
+          quickchartButtonEl.classList.add('colab-df-quickchart-complete');
+        }
+        (() => {
+          let quickchartButtonEl =
+            document.querySelector('#df-ae29622f-6d51-4aee-baad-b97b27227edd button');
+          quickchartButtonEl.style.display =
+            google.colab.kernel.accessAllowed ? 'block' : 'none';
+        })();
+      </script>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h1 id="Different-Types-of-Measurement:">Different Types of Measurement:<a class="anchor-link" href="#Different-Types-of-Measurement:">¶</a></h1>
 </div>
 </div>
@@ -7625,6 +8028,42 @@ you can code everything by hand, where you figure out the logic for how a</p>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p><strong>Anterior-Posterior Measurement</strong></p>
+<p>Plot a box plot and get stats for the Ant-Post field of the micro CT data for ground and spaceflight samples</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="n">m</span><span class="o">.</span><span class="n">plotbox_and_stats</span><span class="p">(</span><span class="n">data_</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">'microCT'</span><span class="p">],</span> <span class="n">sample_key</span><span class="o">=</span><span class="s1">'Source Name'</span><span class="p">,</span> <span class="n">field</span> <span class="o">=</span><span class="s1">'Ant-Post'</span><span class="p">,</span> <span class="n">treatment</span> <span class="o">=</span> <span class="s1">'Treatment'</span><span class="p">,</span> <span class="n">space</span><span class="o">=</span><span class="s1">'Flight'</span><span class="p">,</span> <span class="n">exclude_samples</span><span class="o">=</span><span class="p">[])</span>
+<span class="n">m</span><span class="o">.</span><span class="n">plotbox_and_stats</span><span class="p">(</span><span class="n">data_</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">'microCT'</span><span class="p">],</span> <span class="n">sample_key</span><span class="o">=</span><span class="s1">'Source Name'</span><span class="p">,</span> <span class="n">field</span> <span class="o">=</span><span class="s1">'Ant-Post.1'</span><span class="p">,</span> <span class="n">treatment</span> <span class="o">=</span> <span class="s1">'Treatment'</span><span class="p">,</span> <span class="n">space</span><span class="o">=</span><span class="s1">'Flight'</span><span class="p">,</span> <span class="n">exclude_samples</span><span class="o">=</span><span class="p">[])</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-green-fg">/tmp/ipython-input-3940630514.py</span> in <span class="ansi-cyan-fg">&lt;cell line: 0&gt;</span><span class="ansi-blue-fg">()</span>
+<span class="ansi-green-fg">----&gt; 1</span><span class="ansi-red-fg"> </span>m<span class="ansi-blue-fg">.</span>plotbox_and_stats<span class="ansi-blue-fg">(</span>data_<span class="ansi-blue-fg">=</span>data<span class="ansi-blue-fg">[</span><span class="ansi-blue-fg">'microCT'</span><span class="ansi-blue-fg">]</span><span class="ansi-blue-fg">,</span> sample_key<span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">'Source Name'</span><span class="ansi-blue-fg">,</span> field <span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">'Ant-Post'</span><span class="ansi-blue-fg">,</span> treatment <span class="ansi-blue-fg">=</span> <span class="ansi-blue-fg">'Treatment'</span><span class="ansi-blue-fg">,</span> space<span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">'Flight'</span><span class="ansi-blue-fg">,</span> exclude_samples<span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">[</span><span class="ansi-blue-fg">]</span><span class="ansi-blue-fg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">      2</span> m<span class="ansi-blue-fg">.</span>plotbox_and_stats<span class="ansi-blue-fg">(</span>data_<span class="ansi-blue-fg">=</span>data<span class="ansi-blue-fg">[</span><span class="ansi-blue-fg">'microCT'</span><span class="ansi-blue-fg">]</span><span class="ansi-blue-fg">,</span> sample_key<span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">'Source Name'</span><span class="ansi-blue-fg">,</span> field <span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">'Ant-Post.1'</span><span class="ansi-blue-fg">,</span> treatment <span class="ansi-blue-fg">=</span> <span class="ansi-blue-fg">'Treatment'</span><span class="ansi-blue-fg">,</span> space<span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">'Flight'</span><span class="ansi-blue-fg">,</span> exclude_samples<span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">[</span><span class="ansi-blue-fg">]</span><span class="ansi-blue-fg">)</span>
+
+<span class="ansi-red-fg">NameError</span>: name 'data' is not defined</pre>
+</div>
 </div>
 </div>
 </div>
